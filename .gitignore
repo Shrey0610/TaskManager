@@ -1,0 +1,12 @@
+node_modules
+__pycache__
+notebook2/node_modules
+node-sql_test/node_modules
+
+.env
+logs
+
+.DS_Store
+.vscode
+
+
