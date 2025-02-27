@@ -89,8 +89,7 @@ const prompt = PromptTemplate.fromTemplate(`
   1️⃣ Use the **exact** table and column names from the provided schema:  
      {schema}
   2️⃣ **DO NOT** rename, interpret, or modify any table or column names.
-  3️⃣ If a column or table does not exist in the schema, return: "ERROR: Column or table not found."
-  4️⃣ Do NOT format the output in markdown or code blocks.
+  3️⃣ Do NOT format the output in markdown or code blocks.
   
   Question: {question}
   SQL Query:
