@@ -20,11 +20,17 @@ app.use(express.json());
 
 const datasource = new DataSource({
   type: "mysql", // Change from sqlite to mysql
-  host: "localhost",
-  port: 3307,
-  username: "root",
-  password: "", // Replace with your MySQL password if set
-  database: "node-sql_test", // Replace with your actual database name
+  // host: "localhost",
+  // port: 3307,
+  // username: "root",
+  // password: "", // Replace with your MySQL password if set
+  // database: "node-sql_test", // Replace with your actual database name
+  host: process.env.MYSQL_HOST,
+  port: process.env.MYSQL_PORT,
+  username: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD, // Replace with your MySQL password if set
+  database: process.env.MYSQL_DATABASE,
+  // url: process.env.DATABASE_URL, // Use DATABASE_URL from
   synchronize: true, // Set true for development (auto-create tables, but use with caution)
 });
 
@@ -64,15 +70,32 @@ function cleanSqlQuery(query) {
 // SQL Query:
 // `);
 
+// const prompt = PromptTemplate.fromTemplate(`
+//   You are a SQL assistant. Convert the following natural language question into an SQL query.
+//   Do NOT use markdown or code blocks (e.g., do NOT wrap the query inside triple backticks like \`\`\`sql).
+//   Simply return the SQL query as plain text.
+  
+//   NOTE: Use the exact same table and column names from the ${schema}!!
+//   Do not interpret any names from the {question}!
+
+//   Question: {question}
+//   SQL Query:
+//   `);
+
 const prompt = PromptTemplate.fromTemplate(`
   You are a SQL assistant. Convert the following natural language question into an SQL query.
-  Do NOT use markdown or code blocks (e.g., do NOT wrap the query inside triple backticks like \`\`\`sql).
-  Simply return the SQL query as plain text.
   
-  Use the correct table and column names from the schema: {schema}
+  STRICT RULES:
+  1️⃣ Use the **exact** table and column names from the provided schema:  
+     {schema}
+  2️⃣ **DO NOT** rename, interpret, or modify any table or column names.
+  3️⃣ If a column or table does not exist in the schema, return: "ERROR: Column or table not found."
+  4️⃣ Do NOT format the output in markdown or code blocks.
+  
   Question: {question}
   SQL Query:
-  `);
+`);
+
   
 
 /**
@@ -109,7 +132,7 @@ SQL RESPONSE: {response}
 ------------
 NATURAL LANGUAGE RESPONSE:
 
-. Make it clear and concise in a readable format. Do NOT use markdown or code blocks (e.g., do NOT wrap the query inside triple backticks like \`\`\`sql).
+. Make it clear and concise in a readable format. Do NOT use markdown or code blocks (e.g., do NOT wrap the query inside triple backticks like \`\`\`sql). Use the same table names and column names as in {schema} & {query}
 `);
 
 /**

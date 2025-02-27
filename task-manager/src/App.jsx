@@ -66,7 +66,6 @@ const AppWrapper = () => {
     setIsEmployees(!isEmployees);
     navigate(isEmployees ? '/search' : '/search');
   };
-  
 
   return (
     <StrictMode>
