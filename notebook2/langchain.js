@@ -91,6 +91,8 @@ const prompt = PromptTemplate.fromTemplate(`
   2️⃣ **DO NOT** rename, interpret, or modify any table or column names.
   3️⃣ Do NOT format the output in markdown or code blocks.
 
+  4️⃣ DO NOT interpret the question too much. Just convert it to SQL.
+
   SQL Query:
 `);
 
