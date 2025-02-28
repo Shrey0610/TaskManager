@@ -83,7 +83,7 @@ function cleanSqlQuery(query) {
 //   `);
 
 const prompt = PromptTemplate.fromTemplate(`
-  You are a SQL assistant. Convert the following natural language question into an SQL query.
+  You are a SQL assistant. Convert the following {question} into an SQL query.
   
   STRICT RULES:
   1️⃣ Use the **exact** table and column names from the provided schema:  
@@ -91,7 +91,7 @@ const prompt = PromptTemplate.fromTemplate(`
   2️⃣ **DO NOT** rename, interpret, or modify any table or column names.
   3️⃣ Do NOT format the output in markdown or code blocks.
   
-  Question: {question}
+
   SQL Query:
 `);
 
@@ -118,38 +118,21 @@ const sqlQueryChain = RunnableSequence.from([
 /**
  * ✅ Prompt to Convert SQL Response into Natural Language
  */
-// const finalResponsePrompt = PromptTemplate.fromTemplate(`
-// Based on the table schema below, question, SQL query, and SQL response, write a natural language response:
-// ------------
-// SCHEMA: {schema}
-// ------------
-// QUESTION: {question}
-// ------------
-// SQL QUERY: {query}
-// ------------
-// SQL RESPONSE: {response}
-// ------------
-// NATURAL LANGUAGE RESPONSE:
-
-// . Make it clear and concise in a readable format. Do NOT use markdown or code blocks (e.g., do NOT wrap the query inside triple backticks like \`\`\`sql). Use the same table names and column names as in {schema} & {query}
-// `);
-
 const finalResponsePrompt = PromptTemplate.fromTemplate(`
-  Based on the {question} entered, interpret the SQL query, and SQL response, and then give the natural language response with reference to the {schema} provided:
-  ------------
-  SCHEMA: {schema}
-  ------------
-  QUESTION: {question}
-  ------------
-  SQL QUERY: {query}
-  ------------
-  SQL RESPONSE: {response}
-  ------------
-  NATURAL LANGUAGE RESPONSE:
-  
-  . Make it clear and concise in a readable format. Do NOT use markdown or code blocks (e.g., do NOT wrap the query inside triple backticks like \`\`\`sql). Use the same table names and column names as in {schema} & {query}
-  `);
+Based on the table {schema}, {question}, SQL query, and SQL response, write a natural language response:
+------------
+SCHEMA: {schema}
+------------
+QUESTION: {question}
+------------
+SQL QUERY: {query}
+------------
+SQL RESPONSE: {response}
+------------
+NATURAL LANGUAGE RESPONSE:
 
+. Make it clear and concise in a readable format. Do NOT use markdown or code blocks (e.g., do NOT wrap the query inside triple backticks like \`\`\`sql). Use the same table names and column names as in {schema} & {query}
+`);
 
 /**
  * ✅ Execute SQL Query and Get Natural Language Response
