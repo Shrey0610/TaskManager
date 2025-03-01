@@ -134,7 +134,7 @@ const sqlQueryChain = RunnableSequence.from([
 // `);
 
 const finalResponsePrompt = PromptTemplate.fromTemplate(`
-  Based on the table: {schema}, understand the {question}, then give the response for that {question} in a clear and concise readable format:
+  Based on the table {schema},{query}, {response}, understand the {question}, then give the response for that {question} in a clear and concise readable format:
 
   RESPONSE:
   
