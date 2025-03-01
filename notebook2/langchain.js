@@ -83,7 +83,7 @@ function cleanSqlQuery(query) {
 //   `);
 
 const prompt = PromptTemplate.fromTemplate(`
-  You are a SQL assistant. Convert the following natural language question into an SQL query.
+  You are a SQL assistant. Convert the following {question} into an SQL query.
   
   STRICT RULES:
   1️⃣ Use the **exact** table and column names from the provided schema:  
@@ -91,7 +91,6 @@ const prompt = PromptTemplate.fromTemplate(`
   2️⃣ **DO NOT** rename, interpret, or modify any table or column names.
   3️⃣ Do NOT format the output in markdown or code blocks.
   
-  Question: {question}
   SQL Query:
 `);
 
@@ -135,7 +134,7 @@ const sqlQueryChain = RunnableSequence.from([
 // `);
 
 const finalResponsePrompt = PromptTemplate.fromTemplate(`
-  Based on the table: {schema}, understand the {question}, convert its equivalent SQL query: {query} and SQL query response: {response} then give the response for that {question} in a clear and concise readable format:
+  Based on the table: {schema}, understand the {question}, then give the response for that {question} in a clear and concise readable format:
 
   RESPONSE:
   
