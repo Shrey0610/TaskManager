@@ -135,9 +135,9 @@ const sqlQueryChain = RunnableSequence.from([
 // `);
 
 const finalResponsePrompt = PromptTemplate.fromTemplate(`
-  Based on the table: {schema}, understand the {question}, convert its equivalent SQL query: {query} and SQL query response: {response} then give a natural language response for that {question} in a clear and concise readable format:
+  Based on the table: {schema}, understand the {question}, convert its equivalent SQL query: {query} and SQL query response: {response} then give the response for that {question} in a clear and concise readable format:
 
-  NATURAL LANGUAGE RESPONSE:
+  RESPONSE:
   
     STRICT RULES:
   1️⃣ Use the **exact** table and column names from the provided schema:  
