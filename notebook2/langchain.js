@@ -175,37 +175,69 @@ const finalChain = RunnableSequence.from([
 //     res.status(500).json({ error: "Internal Server Error" });
 //   }
 //   });
+const sqlExecutionChain = RunnableSequence.from([
+  {
+    schema: async () => db.getTableInfo(),
+    question: (input) => input.question,
+  },
+  prompt,
+  llm.bind({ stop: ["\nSQLResult:"] }),
+  new StringOutputParser(),
+  {
+    schema: async () => db.getTableInfo(),
+    question: (input) => input.question,
+    query: (input) => input,
+    response: async (input) => db.run(input),
+  },
+  finalResponsePrompt,
+  llm,
+  new StringOutputParser(),
+]);
 
-app.post("/generate-sql", async (req, res) => {
+app.post("/process-sql", async (req, res) => {
   try {
     const { question } = req.body;
-    let sqlQuery = await sqlQueryChain.invoke({ question });
-
-    // Clean the SQL query
-    sqlQuery = cleanSqlQuery(sqlQuery);
-     
-    console.log({ sqlQuery });
-    res.json({ sqlQuery });
+    let finalResponse = await sqlExecutionChain.invoke({ question });
+    finalResponse = cleanSqlQuery(finalResponse);
+    
+    console.log("🔹 Final Response:", finalResponse);
+    res.json({ finalResponse });
   } catch (error) {
-    console.error("Error generating SQL query:", error);
+    console.error("Error processing SQL:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
+// app.post("/generate-sql", async (req, res) => {
+//   try {
+//     const { question } = req.body;
+//     let sqlQuery = await sqlQueryChain.invoke({ question });
 
-  app.post("/execute-query", async (req, res) => {
-    try {
-      const { question } = req.body;
-      let finalResponse = await finalChain.invoke({ question });
-      finalResponse = cleanSqlQuery(finalResponse);
+//     // Clean the SQL query
+//     sqlQuery = cleanSqlQuery(sqlQuery);
+     
+//     console.log({ sqlQuery });
+//     res.json({ sqlQuery });
+//   } catch (error) {
+//     console.error("Error generating SQL query:", error);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
+
+
+//   app.post("/execute-query", async (req, res) => {
+//     try {
+//       const { question } = req.body;
+//       let finalResponse = await finalChain.invoke({ question });
+//       finalResponse = cleanSqlQuery(finalResponse);
       
-      console.log("🔹 Cleaned SQL Query:", finalResponse); // Debug log
-      res.json({ finalResponse });
-    } catch (error) {
-      console.error("Error executing query:", error);
-      res.status(500).json({ error: "Internal Server Error" });
-    }
-  });
+//       console.log("🔹 Cleaned SQL Query:", finalResponse); // Debug log
+//       res.json({ finalResponse });
+//     } catch (error) {
+//       console.error("Error executing query:", error);
+//       res.status(500).json({ error: "Internal Server Error" });
+//     }
+//   });
   
 
 
