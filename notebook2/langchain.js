@@ -208,28 +208,23 @@ function cleanSqlQuery(query) {
 //   });
 
 const prompt = PromptTemplate.fromTemplate(`
-  You are a **strict SQL assistant**. Convert the user question into an SQL query.
+  You are a SQL assistant. Convert the following {question} into an SQL query.
 
   STRICT RULES:
-  1️⃣ Use the **exact table and column names** from this schema:
+  1️⃣ Use the **exact** table and column names from the provided schema:  
      {schema}
-  2️⃣ **DO NOT** modify, rename, or assume column meanings.
-  3️⃣ SQL must follow this format:
-     - **SELECT specific columns** instead of SELECT *  
-     - **Use WHERE conditions properly**
-  4️⃣ Output must be a **single SQL query** without explanation.
-
-  **User Question:** {question}
+  2️⃣ **DO NOT** rename, interpret, or modify any table or column names.
+  3️⃣ Do NOT format the output in markdown or code blocks.
 
   SQL Query:
 `);
 
+/**
+ * ✅ Chain to Generate SQL Query from User's Question
+ */
 const sqlQueryChain = RunnableSequence.from([
   {
-    schema: async () => {
-      const schema = await db.getTableInfo();
-      return JSON.stringify(schema); // **Ensure structured format**
-    },
+    schema: async () => db.getTableInfo(),
     question: (input) => input.question,
   },
   prompt,
@@ -238,36 +233,21 @@ const sqlQueryChain = RunnableSequence.from([
 ]);
 
 /**
- * ✅ Validate & Execute SQL Query
- */
-const executeSQL = async (query) => {
-  try {
-    const isValidSQL = query.toLowerCase().includes("select"); // **Basic validation**
-    if (!isValidSQL) throw new Error("Invalid SQL Query Generated!");
-
-    return await db.run(query); // **Run only if query is valid**
-  } catch (error) {
-    console.error("🚨 SQL Execution Error:", error);
-    return "Error executing SQL query.";
-  }
-};
-
-/**
- * ✅ Convert SQL Result to Natural Language
+ * ✅ Execute SQL Query and Get Clean Natural Language Response
  */
 const finalResponsePrompt = PromptTemplate.fromTemplate(`
-  Given the database schema, the SQL query, and the query result, generate a clear answer.
+  Given the database schema, the SQL query result, and the original user question, provide a clear answer.
 
-  SCHEMA: {schema}
-  QUERY: {query}
-  SQL RESULT: {response}
+  STRICT RULES:
+  1️⃣ Answer based **only** on the SQL result.
+  2️⃣ **Do NOT include or mention the SQL query.**
+  3️⃣ Use the exact terms from the database schema.
+  4️⃣ Provide a short factual explanation of the result.
 
-  RESPONSE RULES:
-  1️⃣ Answer **only** based on the SQL result. Don't explain the {query}, explain the answer briefly.
-  2️⃣ **Do NOT** interpret or modify column names.
-  3️⃣ Keep the response concise, factual, and directly answering the user question.
+  **User Question:** {question}
+  **SQL Result:** {response}
 
-  FINAL RESPONSE:
+  **Final Answer:**
 `);
 
 const finalChain = RunnableSequence.from([
@@ -279,15 +259,16 @@ const finalChain = RunnableSequence.from([
     schema: async () => db.getTableInfo(),
     question: (input) => input.question,
     query: (input) => input.query,
-    response: async (input) => executeSQL(input.query), // **Fix: Execute SQL Safely**
+    response: async (input) => executeSQL(input.query),
   },
   finalResponsePrompt,
   llm,
   new StringOutputParser(),
 ]);
 
+
 /**
- * ✅ API Endpoint for SQL Processing
+ * ✅ Unified API Endpoint
  */
 app.post("/process-sql", async (req, res) => {
   try {
@@ -297,7 +278,7 @@ app.post("/process-sql", async (req, res) => {
     console.log("🔹 Processed SQL Query and Response:", finalResponse);
     res.json({ finalResponse });
   } catch (error) {
-    console.error("🚨 API Error:", error);
+    console.error("Error processing SQL query:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
