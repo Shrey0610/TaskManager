@@ -259,13 +259,12 @@ const finalChain = RunnableSequence.from([
     schema: async () => db.getTableInfo(),
     question: (input) => input.question,
     query: (input) => input.query,
-    response: async (input) => executeSQL(input.query),
+    response: async (input) => db.run(input.query),  // ✅ FIXED: Using db.run()
   },
   finalResponsePrompt,
   llm,
   new StringOutputParser(),
 ]);
-
 
 /**
  * ✅ Unified API Endpoint
@@ -278,10 +277,27 @@ app.post("/process-sql", async (req, res) => {
     console.log("🔹 Processed SQL Query and Response:", finalResponse);
     res.json({ finalResponse });
   } catch (error) {
-    console.error("Error processing SQL query:", error);
+    console.error("❌ Error processing SQL query:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+
+/**
+ * ✅ Unified API Endpoint
+ */
+// app.post("/process-sql", async (req, res) => {
+//   try {
+//     const { question } = req.body;
+//     let finalResponse = await finalChain.invoke({ question });
+
+//     console.log("🔹 Processed SQL Query and Response:", finalResponse);
+//     res.json({ finalResponse });
+//   } catch (error) {
+//     console.error("Error processing SQL query:", error);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
 
   
 
