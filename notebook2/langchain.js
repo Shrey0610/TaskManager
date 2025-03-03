@@ -208,7 +208,7 @@ function cleanSqlQuery(query) {
 //   });
 
 const prompt = PromptTemplate.fromTemplate(`
-  You are a SQL assistant. Understand the {question} thoroughly and then convert the following it into an SQL query.
+  You are a SQL assistant. Convert the following {question} into an SQL query.
 
   STRICT RULES:
   1️⃣ Use the **exact** table and column names from the provided schema:  
