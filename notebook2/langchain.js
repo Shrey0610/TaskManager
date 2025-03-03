@@ -208,7 +208,7 @@ function cleanSqlQuery(query) {
 //   });
 
 const prompt = PromptTemplate.fromTemplate(`
-  You are a SQL assistant. Convert the following {question} into an SQL query.
+  You are a SQL assistant. Understand the {question} thoroughly and convert the following {question} into an SQL query.
 
   STRICT RULES:
   1️⃣ Use the **exact** table and column names from the provided schema:  
@@ -236,7 +236,7 @@ const sqlQueryChain = RunnableSequence.from([
  * ✅ Execute SQL Query and Get Clean Natural Language Response
  */
 const finalResponsePrompt = PromptTemplate.fromTemplate(`
-  Based on the table schema, SQL query, and SQL response below, provide a **direct** and **concise** natural language answer to the {question}:
+  Based on the table schema, SQL query, and SQL response below, compare the {query} and {question} to make the answer as accurate as possible provide a **direct** and **concise** natural language answer to the {question}:
 
   ------------
   SCHEMA: {schema}
