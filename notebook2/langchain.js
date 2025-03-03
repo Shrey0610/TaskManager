@@ -249,7 +249,7 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
   RESPONSE:
 
   STRICT RULES:
-  1️⃣ **Only return the final answer** without unnecessary explanations.
+  1️⃣ **Only return the final answer** with some detail from the {schema}.
   2️⃣ Do NOT interpret or modify any table or column names.
   3️⃣ Do NOT format the output in markdown or code blocks.
 `);
