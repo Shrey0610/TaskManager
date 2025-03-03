@@ -249,7 +249,7 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
   RESPONSE:
 
   STRICT RULES:
-  1️⃣ **Only return the final answer by understanding the {question} first with some detail of that answer and not the {query}**.
+  1️⃣ **Only return the final answer with some detail of that answer and not the {query}**.
   2️⃣ Do NOT interpret or modify any table or column names.
   3️⃣ Do NOT format the output in markdown or code blocks.
 `);
