@@ -285,7 +285,7 @@ const finalChain = RunnableSequence.from([
     const query = input.query;
     
     try {
-      const response = await db.run(query);
+      const response = await db.run(cleanSqlQuery(query));
       const intent = detectIntent(input.question);
       const entities = detectEntities(input.question);
 
