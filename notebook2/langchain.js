@@ -328,7 +328,12 @@ const prompt = PromptTemplate.fromTemplate(`
   
   // Intent detection function
   async function detectIntent(question) {
-    // Simple intent detection based on keywords
+    if (!question || typeof question !== "string") {
+        console.error("❌ Error: question is undefined or not a string");
+        return "general-query";
+    }
+
+    // Convert to lowercase for comparison
     const questionLower = question.toLowerCase();
     
     if (questionLower.includes("how many") && 
@@ -343,7 +348,8 @@ const prompt = PromptTemplate.fromTemplate(`
     }
     
     return "general-query";
-  }
+}
+
 
   
 
