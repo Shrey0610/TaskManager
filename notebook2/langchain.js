@@ -298,57 +298,64 @@ const prompt = PromptTemplate.fromTemplate(`
   // API endpoint with improved error handling
   app.post("/process-sql", async (req, res) => {
     try {
-      const { question } = req.body;
-      console.log("📝 Processing question:", question);
-      
-      // Detect intent from question to help guide processing
-      const intent = await detectIntent(question);
-      console.log("🎯 Detected intent:", intent);
-      
-      let finalResponse = await finalChain.invoke({ 
-        question,
-        intent // Pass the intent to the chain
-      });
-      
-      console.log("✅ Final response:", finalResponse);
-      res.json({ finalResponse });
+        // Ensure request body contains question
+        if (!req.body || !req.body.question || typeof req.body.question !== "string") {
+            return res.status(400).json({ 
+                error: "Invalid request",
+                message: "Missing or invalid 'question' field in request body."
+            });
+        }
+
+        const { question } = req.body;
+        console.log("📝 Processing question:", question);
+
+        // Detect intent safely
+        const intent = await detectIntent(question);
+        console.log("🎯 Detected intent:", intent);
+
+        let finalResponse = await finalChain.invoke({ 
+            question,
+            intent
+        });
+
+        console.log("✅ Final response:", finalResponse);
+        res.json({ finalResponse });
+
     } catch (error) {
-      console.error("❌ Error processing SQL query:", error);
-      
-      // More informative error handling
-      const errorMessage = error.message || "Unknown error occurred";
-      const errorResponse = `I'm unable to process this database question correctly. The specific issue is: ${errorMessage}. Please try rephrasing your question.`;
-      
-      res.status(500).json({ 
-        error: "Query Processing Error",
-        message: errorResponse
-      });
+        console.error("❌ Error processing SQL query:", error);
+
+        res.status(500).json({ 
+            error: "Query Processing Error",
+            message: `I'm unable to process this database question correctly. The specific issue is: ${error.message || "Unknown error occurred"}. Please try rephrasing your question.`
+        });
     }
-  });
+});
+
   
   // Intent detection function
   async function detectIntent(question) {
     if (!question || typeof question !== "string") {
-        console.error("❌ Error: question is undefined or not a string");
+        console.error("❌ detectIntent Error: Invalid question input", question);
         return "general-query";
     }
 
-    // Convert to lowercase for comparison
+    console.log("🔍 Detecting intent for question:", question);
     const questionLower = question.toLowerCase();
-    
+
     if (questionLower.includes("how many") && 
         (questionLower.includes("employee") || questionLower.includes("assignee"))) {
-      return "count-employees";
+        return "count-employees";
     } else if (questionLower.includes("how many") && questionLower.includes("task")) {
-      return "count-tasks";
+        return "count-tasks";
     } else if (questionLower.includes("who") || questionLower.includes("which")) {
-      return "entity-identification";
+        return "entity-identification";
     } else if (questionLower.includes("list") || questionLower.includes("show me")) {
-      return "list-entities";
+        return "list-entities";
     }
-    
+
     return "general-query";
 }
+
 
 
   
