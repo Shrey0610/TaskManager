@@ -211,151 +211,124 @@ const prompt = PromptTemplate.fromTemplate(`
   You are a precise SQL query generator. Given a natural language question, create an SQL query that follows these STRICT guidelines:
   
   1. Use ONLY the exact table and column names from this schema: {schema}
-  2. For questions about counts or quantities, always use COUNT() functions appropriately
-  3. For "how many" questions about employees, use COUNT(DISTINCT employee_id) or the appropriate unique identifier
-  4. Match the query structure to the intent of the question (counting, filtering, summarizing)
-  5. Consider all possible tables needed to answer the question completely
-  6. Structure complex queries with appropriate JOINs when needed
-  
+  2. Use COUNT() functions when the question asks "how many"
+  3. Match the query structure to the question's intent (counting, listing, filtering)
+  4. Use JOINs when needed to combine multiple tables
+  5. Do NOT explain—return only the SQL query
+
   User question: {question}
   
-  SQL Query (no markdown, no explanations, query only):
+  SQL Query:
   `);
-  
-  // Chain to generate SQL query
-  const sqlQueryChain = RunnableSequence.from([
-    {
-      schema: async () => db.getTableInfo(),
-      question: (input) => input.question,
-    },
-    prompt,
-    llm.bind({ stop: ["\nSQLResult:"] }),
-    new StringOutputParser(),
-  ]);
-  
-  // Validation function to check if the query matches the question type
-  const validateQueryMatch = (query, question) => {
-    // Basic validation rules
-    const isCountQuestion = question.toLowerCase().includes("how many");
-    const hasCountFunction = query.toLowerCase().includes("count(");
-    
-    if (isCountQuestion && !hasCountFunction) {
-      console.warn("⚠️ Query validation failed: Count question but no COUNT function");
-      return false;
-    }
-    
-    return true;
-  };
-  
-  // Improved response template with clear instructions for different question types
-  const finalResponsePrompt = PromptTemplate.fromTemplate(`
+
+const sqlQueryChain = RunnableSequence.from([
+  {
+    schema: async () => db.getTableInfo(),
+    question: (input) => input.question,
+  },
+  prompt,
+  llm.bind({ stop: ["\nSQLResult:"] }),
+  new StringOutputParser(),
+]);
+
+// Function to detect intents
+function detectIntent(question) {
+  const qLower = question.toLowerCase();
+
+  if (qLower.includes("how many") && qLower.includes("employee")) return "count-employees";
+  if (qLower.includes("how many") && qLower.includes("task")) return "count-tasks";
+  if (qLower.includes("who") || qLower.includes("which")) return "entity-identification";
+  if (qLower.includes("list") || qLower.includes("show me")) return "list-entities";
+
+  return "general-query";
+}
+
+// Function to detect entities
+function detectEntities(question) {
+  const entities = [];
+  const qLower = question.toLowerCase();
+
+  if (qLower.includes("email")) entities.push("email");
+  if (qLower.includes("priority")) entities.push("priority");
+  if (qLower.includes("assignee")) entities.push("taskAssignee");
+  if (qLower.includes("task name")) entities.push("task_name");
+  if (qLower.includes("status")) entities.push("taskStatus");
+
+  return entities.length > 0 ? entities : null;
+}
+
+const finalResponsePrompt = PromptTemplate.fromTemplate(`
   You are a helpful database assistant. Provide a clear, accurate answer based ONLY on these SQL results.
   
   GUIDELINES:
-  1. Answer the question directly and precisely
-  2. For count questions, provide the exact number without extra text
-  3. DO NOT mention SQL or queries in your response
-  4. Use natural, conversational language
-  5. If the result doesn't answer the question, say so clearly
-  
-  Original question: {question}
-  SQL Query executed: {query}
+  1. Answer the question directly and briefly
+  2. DO NOT mention SQL or queries
+  3. If the result is a count, give the number directly
+  4. Use natural, simple language
+  5. If intent or entities are detected, instruct the user
+
+  Question: {question}
   SQL Result: {response}
-  
-  Your concise answer:
+
+  {intentMessage}
+  {entityMessage}
+
+  Your answer:
   `);
-  
-  const finalChain = RunnableSequence.from([
-    {
-      question: (input) => input.question,
-      query: sqlQueryChain,
-    },
-    async (input) => {
-      const query = input.query;
-      
-      // Validate query matches question type
-      if (!validateQueryMatch(query, input.question)) {
-        // Generate a corrected query if validation fails
-        console.log("🔄 Regenerating query with more specific instructions");
-        const correctedQuery = await llm.invoke(
-          `The question "${input.question}" requires a SQL query that specifically counts or filters correctly. The original query doesn't match the question type. Generate a corrected SQL query using this schema: ${await db.getTableInfo()}`
-        );
-        input.query = correctedQuery;
-      }
-      
-      return {
-        schema: await db.getTableInfo(),
-        question: input.question,
-        query: input.query,
-        response: await db.run(input.query),
-      };
-    },
-    finalResponsePrompt,
-    llm,
-    new StringOutputParser(),
-  ]);
-  
-  // API endpoint with improved error handling
-  app.post("/process-sql", async (req, res) => {
+
+const finalChain = RunnableSequence.from([
+  {
+    question: (input) => input.question,
+    query: sqlQueryChain,
+  },
+  async (input) => {
+    const query = input.query;
+    
     try {
-        // Ensure request body contains question
-        if (!req.body || !req.body.question || typeof req.body.question !== "string") {
-            return res.status(400).json({ 
-                error: "Invalid request",
-                message: "Missing or invalid 'question' field in request body."
-            });
-        }
+      const response = await db.run(query);
+      const intent = detectIntent(input.question);
+      const entities = detectEntities(input.question);
 
-        const { question } = req.body;
-        console.log("📝 Processing question:", question);
-
-        // Detect intent safely
-        const intent = await detectIntent(question);
-        console.log("🎯 Detected intent:", intent);
-
-        let finalResponse = await finalChain.invoke({ 
-            question,
-            intent
-        });
-
-        console.log("✅ Final response: ", finalResponse);
-        res.json({ finalResponse });
-
+      return {
+        question: input.question,
+        query,
+        response,
+        intentMessage: intent !== "general-query" ? `📌 **Intent Detected:** ${intent}` : "",
+        entityMessage: entities ? `🔍 **Entities Identified:** ${entities.join(", ")}` : "",
+      };
     } catch (error) {
-        console.error("❌ Error processing SQL query:", error);
-
-        res.status(500).json({ 
-            error: "Query Processing Error",
-            message: `I'm unable to process this database question correctly. The specific issue is: ${error.message || "Unknown error occurred"}. Please try rephrasing your question.`
-        });
+      console.error("❌ SQL Execution Error:", error);
+      return {
+        question: input.question,
+        response: "I'm unable to process this request. Please check the question or try again later.",
+      };
     }
+  },
+  finalResponsePrompt,
+  llm,
+  new StringOutputParser(),
+]);
+
+// API endpoint
+app.post("/process-sql", async (req, res) => {
+  try {
+    if (!req.body || !req.body.question || typeof req.body.question !== "string") {
+      return res.status(400).json({ error: "Invalid request", message: "Missing or invalid 'question' field." });
+    }
+
+    const { question } = req.body;
+    console.log("📝 Processing:", question);
+
+    const finalResponse = await finalChain.invoke({ question });
+
+    console.log("✅ Response:", finalResponse);
+    res.json({ finalResponse });
+
+  } catch (error) {
+    console.error("❌ Error processing request:", error);
+    res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
+  }
 });
-
-  
-  // Intent detection function
-  async function detectIntent(question) {
-    if (!question || typeof question !== "string") {
-        console.error("❌ detectIntent Error: Invalid question input", question);
-        return "general-query";
-    }
-
-    console.log("🔍 Detecting intent for question:", question);
-    const questionLower = question.toLowerCase();
-
-    if (questionLower.includes("how many") && 
-        (questionLower.includes("employee") || questionLower.includes("assignee"))) {
-        return "count-employees";
-    } else if (questionLower.includes("how many") && questionLower.includes("task")) {
-        return "count-tasks";
-    } else if (questionLower.includes("who") || questionLower.includes("which")) {
-        return "entity-identification";
-    } else if (questionLower.includes("list") || questionLower.includes("show me")) {
-        return "list-entities";
-    }
-
-    return "general-query";
-}
-
 
 
   
