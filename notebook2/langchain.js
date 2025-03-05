@@ -164,18 +164,6 @@ function cleanSqlQuery(query) {
 //   new StringOutputParser(),
 // ]);
 
-// // app.post("/generate-sql", async (req, res) => {
-// //   try {
-// //     const { question } = req.body;
-// //     const sqlQuery = await sqlQueryChain.invoke({ question });
-// //     console.log({ sqlQuery });
-// //     res.json({ sqlQuery });
-// //   } catch (error) {
-// //     console.error("Error generating SQL query:", error);
-// //     res.status(500).json({ error: "Internal Server Error" });
-// //   }
-// //   });
-
 // app.post("/generate-sql", async (req, res) => {
 //   try {
 //     const { question } = req.body;
@@ -329,10 +317,6 @@ app.post("/process-sql", async (req, res) => {
     res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
   }
 });
-
-
-  
-
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
