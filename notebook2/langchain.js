@@ -332,9 +332,11 @@ app.post("/process-sql", async (req, res) => {
   try {
     console.log("Received request:", req.body); // Debugging
 
-    const question = req.body.question || req.body.input?.text; // Adjust based on payload
+    // Extract question from multiple possible locations
+    const question = req.body.question || req.query.question || req.body.input?.text;
 
     if (!question || typeof question !== "string") {
+      console.error("❌ Invalid request: Missing 'question'");
       return res.status(400).json({ error: "Invalid request", message: "Missing or invalid 'question' field." });
     }
 
@@ -343,13 +345,19 @@ app.post("/process-sql", async (req, res) => {
     const finalResponse = await finalChain.invoke({ question });
 
     console.log("✅ Response:", finalResponse);
-    res.json({ finalResponse });
+    res.json({ output: { text: finalResponse } });
+    console.log("Headers:", req.headers);
+    console.log("Full Request Body:", req.body);
+    console.log("Query Params:", req.query);
+  
+    res.json({ message: "Check logs for details" });
 
   } catch (error) {
     console.error("❌ Error processing request:", error);
     res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
   }
 });
+
 
 
 app.listen(PORT, () => {
