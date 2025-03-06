@@ -284,13 +284,16 @@ const finalChain = RunnableSequence.from([
       const response = await db.run(cleanSqlQuery(query));
       const intent = detectIntent(input.question);
       const entities = detectEntities(input.question);
+      const intentMessage = intent !== "general-query" ? `📌 **Intent Detected:** ${intent}` : "";
+const entityMessage = entities?.length ? `🔍 **Entities Identified:** ${entities.join(", ")}` : "";
+
 
       return {
         question: input.question,
         query,
         response,
-        intentMessage: intent !== "general-query" ? `📌 **Intent Detected:** ${intent}` : "",
-        entityMessage: entities ? `🔍 **Entities Identified:** ${entities.join(", ")}` : "",
+        intentMessage: intentMessage || "",
+        entityMessage: entityMessage || "",
       };
     } catch (error) {
       console.error("❌ SQL Execution Error:", error);
@@ -306,13 +309,35 @@ const finalChain = RunnableSequence.from([
 ]);
 
 // API endpoint
+// app.post("/process-sql", async (req, res) => {
+//   try {
+//     // if (!req.body || !req.body.question || typeof req.body.question !== "string") {
+//     //   return res.status(400).json({ error: "Invalid request", message: "Missing or invalid 'question' field." });
+//     // }
+
+//     const { question } = req.body;
+//     console.log("📝 Processing:", question);
+
+//     const finalResponse = await finalChain.invoke({ question });
+
+//     console.log("✅ Response:", finalResponse);
+//     res.json({ finalResponse });
+
+//   } catch (error) {
+//     console.error("❌ Error processing request:", error);
+//     res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
+//   }
+// });
 app.post("/process-sql", async (req, res) => {
   try {
-    // if (!req.body || !req.body.question || typeof req.body.question !== "string") {
-    //   return res.status(400).json({ error: "Invalid request", message: "Missing or invalid 'question' field." });
-    // }
+    console.log("Received request:", req.body); // Debugging
 
-    const { question } = req.body;
+    const question = req.body.question || req.body.input?.text; // Adjust based on payload
+
+    if (!question || typeof question !== "string") {
+      return res.status(400).json({ error: "Invalid request", message: "Missing or invalid 'question' field." });
+    }
+
     console.log("📝 Processing:", question);
 
     const finalResponse = await finalChain.invoke({ question });
@@ -325,6 +350,7 @@ app.post("/process-sql", async (req, res) => {
     res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
