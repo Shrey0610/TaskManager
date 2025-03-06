@@ -300,9 +300,9 @@ const finalChain = RunnableSequence.from([
 // API endpoint
 app.post("/process-sql", async (req, res) => {
   try {
-    if (!req.body || !req.body.question || typeof req.body.question !== "string") {
-      return res.status(400).json({ error: "Invalid request", message: "Missing or invalid 'question' field." });
-    }
+    // if (!req.body || !req.body.question || typeof req.body.question !== "string") {
+    //   return res.status(400).json({ error: "Invalid request", message: "Missing or invalid 'question' field." });
+    // }
 
     const { question } = req.body;
     console.log("📝 Processing:", question);
