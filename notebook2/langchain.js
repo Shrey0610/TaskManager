@@ -234,8 +234,6 @@ function detectIntent(question) {
 
   return "general-query";
 }
-console.log("Received question:", question);
-const intent = detectIntent(question);
 
 // Function to detect entities
 function detectEntities(question) {
