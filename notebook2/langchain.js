@@ -209,16 +209,27 @@ const prompt = PromptTemplate.fromTemplate(`
   SQL Query:
   `);
 
-const sqlQueryChain = RunnableSequence.from([
-  await prompt.format(
+// const sqlQueryChain = RunnableSequence.from(await prompt.format([
+//   {
+//     schema: async () => db.getTableInfo(),
+//     question: (input) => input.question,
+//   },
+//   prompt,
+//   llm.bind({ stop: ["\nSQLResult:"] }),
+//   new StringOutputParser(),
+// ]));
+const schema = await db.getTableInfo(); // Ensure schema is fetched before usage
+
+const sqlQueryChain = RunnableSequence.from(await prompt.format([
   {
-    schema: async () => db.getTableInfo(),
+    schema: schema, // Now it's a value, not a function
     question: (input) => input.question,
-  }),
+  },
   prompt,
   llm.bind({ stop: ["\nSQLResult:"] }),
   new StringOutputParser(),
-]);
+]));
+
 
 // Function to detect intents
 function detectIntent(question) {
