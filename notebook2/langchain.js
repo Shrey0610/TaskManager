@@ -335,10 +335,10 @@ app.post("/process-sql", async (req, res) => {
     // Extract question from multiple possible locations
     const question = req.body.question || req.query.question || req.body.input?.text;
 
-    if (!question || typeof question !== "string") {
-      console.error("❌ Invalid request: Missing 'question'");
-      return res.status(400).json({ error: "Invalid request", message: "Missing or invalid 'question' field." });
-    }
+    // if (!question || typeof question !== "string") {
+    //   console.error("❌ Invalid request: Missing 'question'");
+    //   return res.status(400).json({ error: "Invalid request", message: "Missing or invalid 'question' field." });
+    // }
 
     console.log("📝 Processing:", question);
 
