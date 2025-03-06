@@ -346,11 +346,6 @@ app.post("/process-sql", async (req, res) => {
 
     console.log("✅ Response:", finalResponse);
     res.json({ output: { text: finalResponse } });
-    console.log("Headers:", req.headers);
-    console.log("Full Request Body:", req.body);
-    console.log("Query Params:", req.query);
-  
-    res.json({ message: "Check logs for details" });
 
   } catch (error) {
     console.error("❌ Error processing request:", error);
