@@ -248,6 +248,17 @@ export default function TaskSearch() {
 
   return (
     <>
+     {!result.finalResponse ? (
+<>
+  <p style={{backgroundColor: '#fff5d9'}}><b>Query:</b> {search}</p>
+</>
+) : (
+<>
+{/* <p style={{backgroundColor: '#ebc5c5'}}><b>AI assumed query:</b> {data.sqlQuery}</p> */}
+<p style={{backgroundColor: '#fff5d9'}}><b>Query:</b> {search}</p>
+<p style={{backgroundColor: '#e9ffd9'}}><b>Output:</b> {result.finalResponse}</p>
+</>
+)}
       <Stack spacing={2} sx={{ width: 800 }} style={{ margin: '100px auto 300px' }}>
         {isVisible ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
@@ -312,6 +323,7 @@ export default function TaskSearch() {
             </button>
           </div>
         ) : (
+          <>
           <p
             id="touch"
             onClick={() => setIsVisible(true)}
@@ -319,16 +331,9 @@ export default function TaskSearch() {
           >
             Hit ⌘ + K <b>or</b> Click here to search
           </p>
+          </>
         )}
-  {!result.finalResponse ? (
-
-        <p style={{backgroundColor: '#fff5d9'}}><b>Query:</b> {search}</p>
-  ) : (
-      <>
-        {/* <p style={{backgroundColor: '#ebc5c5'}}><b>AI assumed query:</b> {data.sqlQuery}</p> */}
-        <p style={{backgroundColor: '#e9ffd9'}}><b>Output:</b> {result.finalResponse}</p>
-      </>
-        )}
+ 
 
       </Stack>
     </>
