@@ -209,7 +209,7 @@ const prompt = PromptTemplate.fromTemplate(`
   SQL Query:
   `);
 
-const sqlQueryChain = RunnableSequence.from([
+const sqlQueryChain = RunnableSequence.from(await prompt.format([
   {
     schema: async () => db.getTableInfo(),
     question: (input) => input.question,
@@ -217,10 +217,14 @@ const sqlQueryChain = RunnableSequence.from([
   prompt,
   llm.bind({ stop: ["\nSQLResult:"] }),
   new StringOutputParser(),
-]);
+]));
 
 // Function to detect intents
 function detectIntent(question) {
+  if (!question || typeof question !== "string") {
+    console.error("Invalid question input:", question);
+    return "general-query";
+  }
   const qLower = question.toLowerCase();
 
   if (qLower.includes("how many") && qLower.includes("employee")) return "count-employees";
@@ -230,6 +234,8 @@ function detectIntent(question) {
 
   return "general-query";
 }
+console.log("Received question:", question);
+const intent = detectIntent(question);
 
 // Function to detect entities
 function detectEntities(question) {
