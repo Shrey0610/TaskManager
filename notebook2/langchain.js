@@ -238,6 +238,10 @@ function detectIntent(question) {
 // Function to detect entities
 function detectEntities(question) {
   const entities = [];
+  if (!question || typeof question !== "string") {
+    console.error("Invalid question input:", question);
+    return entities.length > 0 ? entities : null;
+  }
   const qLower = question.toLowerCase();
 
   if (qLower.includes("email")) entities.push("email");
