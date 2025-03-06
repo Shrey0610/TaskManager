@@ -167,54 +167,38 @@ export default function TaskSearch() {
   const [isVisible, setIsVisible] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [prevSearch, setPrevSearch] = useState(''); // Initialize as empty string
-  const [data, setData] = useState({ sqlQuery: '' }); // Initialize data state
+  // const [data, setData] = useState({ sqlQuery: '' }); // Initialize data state
   const [result, setResult] = useState({ finalResponse: '' }); // Initialize data state
 
   // Function to send query only if search is valid & different from previous
-  const sendQuery = async (query) => {
-    if (!query.trim() || query.trim() === prevSearch) return;
+  //   if (!query.trim() || query.trim() === prevSearch) return;
 
-    try {
-      const response = await fetch("http://localhost:5005/generate-sql", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: query.trim() }),
-      });
+  //   try {
+  //     const response = await fetch("http://localhost:5005/generate-sql", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ question: query.trim() }),
+  //     });
 
-      const data = await response.json();
-      // setPrevSearch(query.trim()); // Update previous search
-      setData(data); // Update data state
-      setPrevSearch(query.trim()); // Update previous search
-    } catch (error) {
-      console.error("Error adding search query:", error);
-    }
-  };
+  //     const data = await response.json();
+  //     // setPrevSearch(query.trim()); // Update previous search
+  //     setData(data); // Update data state
+  //     setPrevSearch(query.trim()); // Update previous search
+  //   } catch (error) {
+  //     console.error("Error adding search query:", error);
+  //   }
+  // };
 
   const getResult = async (query) => {
     if (!query.trim() || query.trim() === prevSearch) return;
 
     try {
-      const cleanQuery = (query) => {if (!query) return "";
-
-      // Remove code blocks ```sql ... ```
-      query = query.replace(/```(?:sql|SQL|SQLQuery|mysql|postgresql)?\s*/g, "").trim();
-    
-      // Remove SQLQuery: or similar prefixes
-      query = query.replace(/^(SQL\s*Query|SQLQuery|MySQL|PostgreSQL|SQL)\s*:\s*/i, "").trim();
-    
-      // Remove backticks around table and column names
-      query = query.replace(/`([^`]*)`/g, "$1");
-    
-      // Normalize spaces
-      query = query.replace(/\s+/g, " ");
-    
-      return query.trim();}
 
 
-      const response = await fetch("http://localhost:5005/execute-query", {
+      const response = await fetch("https://taskmanager-52vd.onrender.com/process-sql", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: cleanQuery(query) }),
+        body: JSON.stringify({ question: query }),
       });
 
       const result = await response.json();
@@ -239,7 +223,7 @@ export default function TaskSearch() {
     if (event.key === "Enter") {
       if (search.trim() && search.trim() !== prevSearch) {
         console.log(search.trim());
-        sendQuery(search);
+        // sendQuery(search);
         getResult(search);
       }
       setIsVisible(true);
@@ -295,7 +279,7 @@ export default function TaskSearch() {
               onClick={() => {
                 if (search.trim() && search.trim() !== prevSearch) {
                   console.log(search.trim());
-                  sendQuery(search);
+                  // sendQuery(search);
                   getResult(search);
                 }
               }}
@@ -336,12 +320,12 @@ export default function TaskSearch() {
             Hit ⌘ + K <b>or</b> Click here to search
           </p>
         )}
-  {!data.sqlQuery ? (
+  {!result.finalResponse ? (
 
         <p style={{backgroundColor: '#fff5d9'}}><b>Query:</b> {search}</p>
   ) : (
       <>
-        <p style={{backgroundColor: '#ebc5c5'}}><b>AI assumed query:</b> {data.sqlQuery}</p>
+        {/* <p style={{backgroundColor: '#ebc5c5'}}><b>AI assumed query:</b> {data.sqlQuery}</p> */}
         <p style={{backgroundColor: '#e9ffd9'}}><b>Output:</b> {result.finalResponse}</p>
       </>
         )}
