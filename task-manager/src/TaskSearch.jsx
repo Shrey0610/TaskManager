@@ -168,7 +168,7 @@ export default function TaskSearch() {
   const [isTyping, setIsTyping] = useState(false);
   const [prevSearch, setPrevSearch] = useState(''); // Initialize as empty string
   // const [data, setData] = useState({ sqlQuery: '' }); // Initialize data state
-  const [result, setResult] = useState({ finalResponse: '' }); // Initialize data state
+  const [result, setResult] = useState({ output: '' }); // Initialize data state
 
   // Function to send query only if search is valid & different from previous
   //   if (!query.trim() || query.trim() === prevSearch) return;
@@ -248,7 +248,7 @@ export default function TaskSearch() {
 
   return (
     <>
-     {!result.finalResponse ? (
+     {!result.output.text ? (
 <>
   <p style={{backgroundColor: '#fff5d9'}}><b>Query:</b> {search}</p>
 </>
@@ -256,7 +256,7 @@ export default function TaskSearch() {
 <>
 {/* <p style={{backgroundColor: '#ebc5c5'}}><b>AI assumed query:</b> {data.sqlQuery}</p> */}
 <p style={{backgroundColor: '#fff5d9'}}><b>Query:</b> {search}</p>
-<p style={{backgroundColor: '#e9ffd9'}}><b>Output:</b> {result.finalResponse}</p>
+<p style={{backgroundColor: '#e9ffd9'}}><b>Output:</b> {result.output.text}</p>
 </>
 )}
       <Stack spacing={2} sx={{ width: 800 }} style={{ margin: '100px auto 300px' }}>

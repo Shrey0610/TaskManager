@@ -343,9 +343,16 @@ app.post("/process-sql", async (req, res) => {
     console.log("📝 Processing:", question);
 
     const finalResponse = await finalChain.invoke({ question });
+    const finalText = typeof finalResponse === "string" ? finalResponse : finalResponse.text || JSON.stringify(finalResponse);
 
-    console.log("✅ Response:", finalResponse);
-    res.json({ output: { text: finalResponse } });
+
+    console.log("✅ Response:", finalText);
+    res.json({ output: { text: finalText } });
+    console.log("📩 Received request:");
+  console.log("Headers:", req.headers);
+  console.log("Body:", JSON.stringify(req.body, null, 2)); // Pretty-printing for clarity
+  console.log("Query Params:", req.query);
+
 
   } catch (error) {
     console.error("❌ Error processing request:", error);
