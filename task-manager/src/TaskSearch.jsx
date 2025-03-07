@@ -248,7 +248,7 @@ export default function TaskSearch() {
 
   return (
     <>
-     {!result.output.text ? (
+     {!result.output ? (
 <>
   <p style={{backgroundColor: '#fff5d9'}}><b>Query:</b> {search}</p>
 </>
@@ -256,7 +256,7 @@ export default function TaskSearch() {
 <>
 {/* <p style={{backgroundColor: '#ebc5c5'}}><b>AI assumed query:</b> {data.sqlQuery}</p> */}
 <p style={{backgroundColor: '#fff5d9'}}><b>Query:</b> {search}</p>
-<p style={{backgroundColor: '#e9ffd9'}}><b>Output:</b> {result.output.text}</p>
+<p style={{backgroundColor: '#e9ffd9'}}><b>Output:</b> {result.output}</p>
 </>
 )}
       <Stack spacing={2} sx={{ width: 800 }} style={{ margin: '100px auto 300px' }}>

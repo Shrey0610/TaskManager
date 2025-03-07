@@ -367,7 +367,7 @@ app.post("/process-sql", async (req, res) => {
 
 
     console.log("✅ Response:", finalText);
-    res.json({ output: { text: finalText } });
+    res.json({ output:  finalText } );
     console.log("📩 Received request:");
   console.log("Headers:", req.headers);
   console.log("Body:", JSON.stringify(req.body, null, 2)); // Pretty-printing for clarity
