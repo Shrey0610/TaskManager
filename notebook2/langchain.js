@@ -218,7 +218,7 @@ const prompt = PromptTemplate.fromTemplate(`
         }
         return schemaInfo;
       },
-      question: (input) => input.question.output,
+      question: (input) => input.question,
     },
     prompt,
     llm.bind({ stop: ["\nSQLResult:"] }),
@@ -317,7 +317,6 @@ const finalChain = RunnableSequence.from([
       console.error("❌ SQL Execution Error:", error);
       return {
         question: input.question,
-        query: input.query,
         response: "I'm unable to process this request. Please check the question or try again later.",
         intentMessage: "📌 **Intent Detection Failed**",
         entityMessage: "🔍 **Entity Detection Failed**"
