@@ -209,15 +209,28 @@ const prompt = PromptTemplate.fromTemplate(`
   SQL Query:
   `);
 
-const sqlQueryChain = RunnableSequence.from([
-  {
-    schema: async () => db.getTableInfo(),
-    question: (input) => input.question,
-  },
-  prompt,
-  llm.bind({ stop: ["\nSQLResult:"] }),
-  new StringOutputParser(),
-]);
+  const sqlQueryChain = RunnableSequence.from([
+    {
+      schema: async () => {
+        const schemaInfo = await db.getTableInfo();
+        if (!schemaInfo || Object.keys(schemaInfo).length === 0) {
+          throw new Error("Database schema is empty or undefined.");
+        }
+        return schemaInfo;
+      },
+      question: (input) => input.question,
+    },
+    prompt,
+    llm.bind({ stop: ["\nSQLResult:"] }),
+    new StringOutputParser(),
+    async (query) => {
+      if (!query || query.trim() === "") {
+        throw new Error("Generated SQL query is empty.");
+      }
+      return query;
+    }
+  ]);
+  
 
 // Function to detect intents
 function detectIntent(question) {
@@ -279,27 +292,34 @@ const finalChain = RunnableSequence.from([
   },
   async (input) => {
     const query = input.query;
-    
+  
     try {
+      if (!query || query.trim() === "") {
+        throw new Error("SQL query is empty.");
+      }
+  
       const response = await db.run(cleanSqlQuery(query));
       const intent = detectIntent(input.question);
       const entities = detectEntities(input.question);
-      const intentMessage = intent !== "general-query" ? `📌 **Intent Detected:** ${intent}` : "";
-const entityMessage = entities?.length ? `🔍 **Entities Identified:** ${entities.join(", ")}` : "";
-
-
+  
+      // Ensure intentMessage and entityMessage are always defined
+      const intentMessage = intent !== "general-query" ? `📌 **Intent Detected:** ${intent}` : "📌 **Intent Detected:** None";
+      const entityMessage = entities?.length ? `🔍 **Entities Identified:** ${entities.join(", ")}` : "🔍 **Entities Identified:** None";
+  
       return {
         question: input.question,
         query,
         response,
-        intentMessage: intentMessage || "",
-        entityMessage: entityMessage || "",
+        intentMessage, // Always present
+        entityMessage, // Always present
       };
     } catch (error) {
       console.error("❌ SQL Execution Error:", error);
       return {
         question: input.question,
         response: "I'm unable to process this request. Please check the question or try again later.",
+        intentMessage: "📌 **Intent Detection Failed**",
+        entityMessage: "🔍 **Entity Detection Failed**"
       };
     }
   },
