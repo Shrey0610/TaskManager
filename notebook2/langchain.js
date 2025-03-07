@@ -218,7 +218,7 @@ const prompt = PromptTemplate.fromTemplate(`
         }
         return schemaInfo;
       },
-      question: (input) => input.question,
+      question: (input) => input.question.output,
     },
     prompt,
     llm.bind({ stop: ["\nSQLResult:"] }),
@@ -287,7 +287,7 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
 
 const finalChain = RunnableSequence.from([
   {
-    question: (input) => input.question,
+    question: (input) => input.question.output,
     query: sqlQueryChain,
   },
   async (input) => {
@@ -307,7 +307,7 @@ const finalChain = RunnableSequence.from([
       const entityMessage = entities?.length ? `🔍 **Entities Identified:** ${entities.join(", ")}` : "🔍 **Entities Identified:** None";
   
       return {
-        question: input.question,
+        question: input.question.output,
         query,
         response,
         intentMessage, // Always present
@@ -316,7 +316,7 @@ const finalChain = RunnableSequence.from([
     } catch (error) {
       console.error("❌ SQL Execution Error:", error);
       return {
-        question: input.question,
+        question: input.question.output,
         response: "I'm unable to process this request. Please check the question or try again later.",
         intentMessage: "📌 **Intent Detection Failed**",
         entityMessage: "🔍 **Entity Detection Failed**"
@@ -353,7 +353,7 @@ app.post("/process-sql", async (req, res) => {
     console.log("Received request:", req.body); // Debugging
 
     // Extract question from multiple possible locations
-    const question = req.body.question || req.query.question || req.body.input?.text;
+    const question = req.body.question.output || req.query.question.output || req.body.input?.text;
 
     // if (!question || typeof question !== "string") {
     //   console.error("❌ Invalid request: Missing 'question'");
