@@ -310,13 +310,14 @@ const finalChain = RunnableSequence.from([
         question: input.question,
         query,
         response,
-        intentMessage, // Always present
-        entityMessage, // Always present
+        intentMessage: intentMessage || "", // Always present
+        entityMessage: entityMessage || "", // Always present
       };
     } catch (error) {
       console.error("❌ SQL Execution Error:", error);
       return {
         question: input.question,
+        query: input.query,
         response: "I'm unable to process this request. Please check the question or try again later.",
         intentMessage: "📌 **Intent Detection Failed**",
         entityMessage: "🔍 **Entity Detection Failed**"
