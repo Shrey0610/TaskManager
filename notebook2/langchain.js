@@ -261,7 +261,7 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
   2. DO NOT mention SQL or queries
   3. If the result is a count, give the number directly
   4. Use natural, simple language
-  5. If intent or entities are detected, instruct the user
+  5. If intent or entities are detected, instruct the user, otherwise ignore them.
 
   Question: {question}
   SQL Result: {response}
