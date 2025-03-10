@@ -29,6 +29,7 @@ const TasksTable = () => {
     const { tasks, deleteTask, editTask } = useContext(TasksContext);
     const [editId, setEditId] = useState(null);
     const [editField, setEditField] = useState(null);
+    const [, setStarted] = useState(false);
     const [editData, setEditData] = useState({ name: "", taskStatus: "", taskAssignee: "", priority: "", description: "", start: "", end:""});
     
     const handleEdit = (task, field) => {
@@ -43,6 +44,23 @@ const TasksTable = () => {
         setEditField(null);
     };
 
+    const handleStarting = (task) => {  
+        setStarted(true);
+        if (task.taskStatus === "Not Started" && dayjs(task.start).isAfter(dayjs())) {
+            const updatedTask = { ...task, taskStatus: 'In Progress' };
+            editTask(task.id, updatedTask);
+        }
+        else if (task.taskStatus === "Not Started" && dayjs(task.start).isBefore(dayjs()))
+        {
+            const updatedTask = { ...task, taskStatus: 'Start Delayed' };
+            editTask(task.id, updatedTask);
+        }
+        else if (dayjs(task.start).isBefore(dayjs()) && dayjs(task.end).isAfter(dayjs())) {
+            const updatedTask = { ...task, taskStatus: 'In Progress' };
+            editTask(task.id, updatedTask);
+        }
+    };
+    
     const handleKeyPress = (event, id) => {
         if (event.key === 'Enter') {
             handleSave(id);
@@ -126,7 +144,8 @@ const TasksTable = () => {
             style={{ 
                 color: editData.taskStatus === "Not Started" ? 'red' :
                        editData.taskStatus === "In Progress" ? 'blue' :
-                       editData.taskStatus === "Completed" ? 'green' : '#8B0000' 
+                       editData.taskStatus === "Completed" ? 'green' : 
+                       editData.taskStatus === "Start Delayed" ? '#FF00FF' : '#8B0000' 
             }}
         >
             <MenuItem value="Not Started" style={{ color: 'red' }}>Not Started</MenuItem>
@@ -140,16 +159,14 @@ const TasksTable = () => {
             onDoubleClick={() => handleEdit(task, "taskStatus")}
             style={{ color: task.taskStatus === "Not Started" ? 'red' : 
                            task.taskStatus === "In Progress" ? 'blue' : 
-                           task.taskStatus === "Completed" ? 'green' : '#8B0000' }}
-                           onChange={(e) => setEditData({ ...editData, taskStatus: e.target.value })}
+                           task.taskStatus === "Completed" ? 'green' :
+                           task.taskStatus === "Start Delayed" ? '#FF00FF' : '#8B0000' }}
+                           onChange={(task) => handleStarting(task)}
         >
             {task.taskStatus === "Completed" 
                 ? "Completed" 
                 : dayjs(task.end).isBefore(dayjs()) 
-                ? "Delayed" : dayjs(task.start).isAfter(dayjs()) 
-                ? "Not Started" 
-                : dayjs(task.start).isAfter(dayjs()) && dayjs(task.end).isBefore(dayjs()) 
-                ? "In Progress" 
+                ? "Delayed"  
                 : task.taskStatus}
         </span>
     )}
@@ -275,6 +292,13 @@ const TasksTable = () => {
                                 </TableCell>
                                 <TableCell align="center" style={{ minWidth: "120px", whiteSpace: "nowrap" }}>
                                 <div style={{ display: "flex", justifyContent: "center", gap: "8px" }}>
+                                <Button variant="contained" color="secondary"
+                                    id="started"
+                                        onClick={() => {
+                                            handleStarting(task);
+                                        }} style={{ marginLeft: '2px', backgroundColor: '#8099FF', color: 'white' }}>
+                                        Started
+                                    </Button>
                                     {editId === task.id ? (
                                         <Button variant="contained" color="primary" onClick={() => handleSave(task.id)} style={{ marginRight: '8px',  display: 'flex' }}>
                                             Save

@@ -10,8 +10,8 @@ export const TasksProvider = ({ children }) => {
     ]);
 
     // Fetch tasks from MySQL on component mount
-    const fetchTasks = (task) => {
-        fetch("http://localhost:5001", {
+    const fetchTasks = async (task) => {
+       await fetch("http://localhost:5001", {
             method: "GET",
             headers: { "Content-Type": "application/json" },
         })

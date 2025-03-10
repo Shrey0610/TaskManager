@@ -85,6 +85,13 @@ const AppWrapper = () => {
         >
           Search
         </Button>
+
+        {/* On clickling Sync, the state and data gets updated to latest. */}
+        <Button
+         variant="contained"
+         color="secondary">
+            Sync
+         </Button>
       </div>
       <br />
       <br />
