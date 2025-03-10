@@ -130,6 +130,7 @@ const TasksTable = () => {
             }}
         >
             <MenuItem value="Not Started" style={{ color: 'red' }}>Not Started</MenuItem>
+            <MenuItem value="Start Delayed" style={{ color: '#FF00FF' }}>Start Delayed</MenuItem>
             <MenuItem value="In Progress" style={{ color: 'blue' }}>In Progress</MenuItem>
             <MenuItem value="Completed" style={{ color: 'green' }}>Completed</MenuItem>
             <MenuItem value="Delayed" style={{ color: '#8B0000' }}>Delayed</MenuItem>

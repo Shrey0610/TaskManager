@@ -1,7 +1,8 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import mysql from 'mysql';
-import cors from 'cors'
+import mysql from 'mysql2';
+import cors from 'cors';
+import "dotenv/config";
 
 const app = express();
 
@@ -21,11 +22,13 @@ app.use(bodyParser.json());  // parse application/json
 // MySQL
 const pool= mysql.createPool({
     connectionLimit : 10,
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'node-sql_test',
-    port: 3307
+    type: "mysql",
+    host: process.env.MYSQL_HOST,
+    port: process.env.MYSQL_PORT,
+    user: process.env.MYSQL_USER,
+    password: process.env.MYSQL_PASSWORD, // Replace with your MySQL password if set
+    database: process.env.MYSQL_DATABASE,
+    synchronize: true,
 })
  
 // const { tasks } = useContext(TasksContext);
