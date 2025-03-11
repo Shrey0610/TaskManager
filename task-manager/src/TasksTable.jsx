@@ -45,20 +45,25 @@ const TasksTable = () => {
     };
 
     const handleStarting = (task) => {  
-        setStarted(true);
         if (task.taskStatus === "Not Started" && dayjs(task.start).isAfter(dayjs())) {
             const updatedTask = { ...task, taskStatus: 'In Progress' };
             editTask(task.id, updatedTask);
         }
-        else if (task.taskStatus === "Not Started" && dayjs(task.start).isBefore(dayjs()))
-        {
-            const updatedTask = { ...task, taskStatus: 'Start Delayed' };
-            editTask(task.id, updatedTask);
-        }
-        else if (dayjs(task.start).isBefore(dayjs()) && dayjs(task.end).isAfter(dayjs())) {
-            const updatedTask = { ...task, taskStatus: 'In Progress' };
-            editTask(task.id, updatedTask);
-        }
+        else if (task.taskStatus === "Not Started" && dayjs(task.start).isBefore(dayjs()) && dayjs(task.end).isAfter(dayjs()))
+            {
+                const updatedTask = { ...task, taskStatus: 'Start Delayed' };
+                editTask(task.id, updatedTask);
+            }
+            else if (dayjs(task.start).isBefore(dayjs()) && dayjs(task.end).isAfter(dayjs())) {
+                const updatedTask = { ...task, taskStatus: 'In Progress' };
+                editTask(task.id, updatedTask);
+            }
+            
+            else if (dayjs().isAfter(dayjs(task.end)) && (task.taskStatus === "Not Started")) {
+                const updatedTask = { ...task, taskStatus: 'Delayed' };
+                editTask(task.id, updatedTask);
+            }
+            setStarted(true);
     };
     
     const handleKeyPress = (event, id) => {
@@ -165,8 +170,6 @@ const TasksTable = () => {
         >
             {task.taskStatus === "Completed" 
                 ? "Completed" 
-                : dayjs(task.end).isBefore(dayjs()) 
-                ? "Delayed"  
                 : task.taskStatus}
         </span>
     )}
