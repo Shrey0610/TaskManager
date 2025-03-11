@@ -9,8 +9,8 @@ export const EmployeeProvider = ({ children }) => {
     ]);
 
     // Fetch assignees from MySQL on component mount
-    const fetchAssignee = () => {
-        fetch("http://localhost:5002", {
+    const fetchAssignee = async() => {
+        await fetch("http://localhost:5002", {
             method: "GET",
             headers: { "Content-Type": "application/json" },
         })

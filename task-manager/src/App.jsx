@@ -74,7 +74,7 @@ const AppWrapper = () => {
           variant="contained"
           color="primary"
           onClick={toggleUrl}
-        >
+          >
           Switch
         </Button>
 
@@ -82,16 +82,20 @@ const AppWrapper = () => {
           variant="contained"
           color="primary"
           onClick={toggleUrl2}
-        >
+          >
           Search
         </Button>
 
         {/* On clickling Sync, the state and data gets updated to latest. */}
+          <TasksProvider>
+          <EmployeeProvider>
         <Button
          variant="contained"
          color="secondary">
             Sync
          </Button>
+      </EmployeeProvider>
+      </TasksProvider>
       </div>
       <br />
       <br />
