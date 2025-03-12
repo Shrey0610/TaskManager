@@ -23,13 +23,14 @@ app.use(bodyParser.json());  // parse application/json
 // MySQL
 const pool= mysql.createPool({
     connectionLimit : 10,
-    type: "mysql",
+    // type: "mysql",
     host: process.env.MYSQL_HOST,
     port: process.env.MYSQL_PORT,
     user: process.env.MYSQL_USER,
     password: process.env.MYSQL_PASSWORD, // Replace with your MySQL password if set
     database: process.env.MYSQL_DATABASE,
-    synchronize: true,
+    // synchronize: true,
+    connectTimeout: 20000 
 })
 
 app.get('', (req,res)=>{

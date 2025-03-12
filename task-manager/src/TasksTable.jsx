@@ -53,6 +53,7 @@ const TasksTable = () => {
             {
                 const updatedTask = { ...task, taskStatus: 'Start Delayed' };
                 editTask(task.id, updatedTask);
+                console.log('Started on:',dayjs().format("YYYY-MM-DD HH:mm:ss"));
             }
             else if (dayjs(task.start).isBefore(dayjs()) && dayjs(task.end).isAfter(dayjs())) {
                 const updatedTask = { ...task, taskStatus: 'In Progress' };
@@ -60,7 +61,9 @@ const TasksTable = () => {
             }
             
             else if (dayjs().isAfter(dayjs(task.end)) && (task.taskStatus === "Not Started")) {
-                const updatedTask = { ...task, taskStatus: 'Delayed' };
+                // const updatedTask = { ...task, taskStatus: 'Delayed' };
+                // editTask(task.id, updatedTask);
+                const updatedTask = { ...task, taskStatus: 'Delayed', start: dayjs().format("YYYY-MM-DD HH:mm:ss") };
                 editTask(task.id, updatedTask);
             }
             setStarted(true);
