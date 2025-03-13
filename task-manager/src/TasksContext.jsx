@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect } from "react";
 import PropTypes from "prop-types";
+import { Button } from "@mui/material";
 
 export const TasksContext = createContext();
 
@@ -8,6 +9,8 @@ export const TasksProvider = ({ children }) => {
         { id: 1, name: "Task 1", taskStatus: "Pending", taskAssignee: "Test1", priority: "High", description: "This is a test task", start: "", end:"" },
         { id: 2, name: "Task 2", taskStatus: "Completed", taskAssignee: "Test2", priority: "Medium", description: "This is a test task", start: "", end:"" }
     ]);
+    
+    const [syncTrigger, setSyncTrigger] = useState(0);
 
     // Fetch tasks from MySQL on component mount
     const fetchTasks = async (task) => {
@@ -23,7 +26,9 @@ export const TasksProvider = ({ children }) => {
 
     useEffect(() => {
         fetchTasks();
-    }, []);
+    }, [syncTrigger]);
+
+    const handleSync = () => setSyncTrigger(prev => prev + 1);
 
     // Add Task
     const addTask = (task) => {
@@ -62,9 +67,14 @@ export const TasksProvider = ({ children }) => {
 
 
     return (
-        <TasksContext.Provider value={{ tasks, addTask, deleteTask, editTask }}>
+        <>
+        <Button variant="contained" color="primary" onClick={handleSync}>
+            Sync Tasks
+        </Button>
+        <TasksContext.Provider value={{ tasks, addTask, deleteTask, editTask, fetchTasks }}>
             {children}
         </TasksContext.Provider>
+        </>
     );
 };
 

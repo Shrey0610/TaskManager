@@ -87,19 +87,10 @@ const AppWrapper = () => {
         </Button>
 
         {/* On clickling Sync, the state and data gets updated to latest. */}
-          <TasksProvider>
-          <EmployeeProvider>
-        <Button
-         variant="contained"
-         color="secondary">
-            Sync
-         </Button>
-      </EmployeeProvider>
-      </TasksProvider>
       </div>
       <br />
       <br />
-      <TasksProvider>
+      {/* <TasksProvider> */}
         <EmployeeProvider>
           <Routes>
             <Route index element={<App />} />
@@ -107,7 +98,7 @@ const AppWrapper = () => {
             <Route path="/search" element={<TaskSearch />} />
           </Routes>
         </EmployeeProvider>
-      </TasksProvider>
+      {/* </TasksProvider> */}
     </StrictMode>
   );
 };

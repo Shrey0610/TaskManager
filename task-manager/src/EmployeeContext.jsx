@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect } from "react";
 import PropTypes from "prop-types";
+import { Button } from "@mui/material";
 
 export const EmployeeContext = createContext();
 
@@ -7,6 +8,9 @@ export const EmployeeProvider = ({ children }) => {
     const [assignees, setAssignees] = useState([
         { id: 1, name: "Shrey", email: "ss@example.com", phoneNum: "12345678", dob: "2003-10-06" },
     ]);
+
+    const [syncTrigger, setSyncTrigger] = useState(0);
+
 
     // Fetch assignees from MySQL on component mount
     const fetchAssignee = async() => {
@@ -21,7 +25,9 @@ export const EmployeeProvider = ({ children }) => {
 
     useEffect(() => {
         fetchAssignee();
-    }, []);
+    }, [syncTrigger]);
+
+    const handleSync = () => setSyncTrigger(prev => prev + 1);
 
     // Add Employee
     const addAssignee = (employee) => {
@@ -55,9 +61,14 @@ export const EmployeeProvider = ({ children }) => {
     };
 
     return (
-        <EmployeeContext.Provider value={{ assignees, addAssignee, deleteAssignee, editAssignee }}>
+        <>
+        <Button variant="contained" color="secondary" onClick={handleSync}>
+                Sync Employees
+            </Button>
+        <EmployeeContext.Provider value={{ assignees, addAssignee, deleteAssignee, editAssignee, fetchAssignee }}>
             {children}
         </EmployeeContext.Provider>
+        </>
     );
 };
 
