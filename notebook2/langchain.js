@@ -346,8 +346,8 @@ app.post("/process-sql", async (req, res) => {
     console.log("Headers:", req.headers);
     console.log("Body:", JSON.stringify(req.body, null, 2)); // Pretty-printing for clarity
     console.log("Query Params:", req.query);
-    console.log('Intent: ', req.intentMessage);
-    console.log('Entity: ', req.entityMessage);
+    console.log('Intent: ', finalResponse.intentMessage);
+    console.log('Entity: ', finalResponse.entityMessage);
 
 
   } catch (error) {
