@@ -225,10 +225,20 @@ const prompt = PromptTemplate.fromTemplate(`
     new StringOutputParser(),
     async (query) => {
       if (!query || query.trim() === "") {
-        throw new Error("Generated SQL query is empty.");
+          throw new Error("Generated SQL query is empty.");
       }
+  
+      const paramCount = (query.match(/\?/g) || []).length;
+      const providedValuesCount = Object.values(input).length;
+  
+      if (paramCount !== providedValuesCount) {
+          console.error(`❗ SQL Parameter Mismatch: Expected ${paramCount}, Received ${providedValuesCount}`);
+          throw new Error("SQL parameter mismatch.");
+      }
+  
       return query;
-    }
+  }
+  
   ]);
   
 
@@ -253,9 +263,9 @@ function detectIntent(question, previousContext = null) {
     console.error("Invalid question input:", question);
     return "general-query";
   }
+
   const qLower = question.toLowerCase();
 
-  // Follow-up detection
   if (previousContext && (
     qLower.includes("what about") ||
     qLower.includes("and for") ||
@@ -266,6 +276,8 @@ function detectIntent(question, previousContext = null) {
     return "follow-up";
   }
 
+  if (qLower.includes("add new employee")) return "add-employee";
+  if (qLower.includes("add new task")) return "add-task";
   if (qLower.includes("how many") && qLower.includes("employee")) return "count-employees";
   if (qLower.includes("how many") && qLower.includes("task")) return "count-tasks";
   if (qLower.includes("who") || qLower.includes("which")) return "entity-identification";
@@ -273,6 +285,7 @@ function detectIntent(question, previousContext = null) {
 
   return "general-query";
 }
+
 
 
 // Function to detect entities
@@ -284,6 +297,8 @@ function detectEntities(question, intent) {
   const entityMap = {
       "Task-related": ["taskName", "priority", "taskStatus", "start", "end", "assigneeName"],
       "Assignee-related": ["assigneeName", "dob", "email", "phoneNum"],
+      "add-employee": ["assigneeName", "dob", "email", "phoneNum", "position"],
+      "add-task": ["taskName", "priority", "taskStatus", "assigneeName", "start", "end"],
       "combined-tasks_assignees": ["taskName", "priority", "taskStatus", "start", "end", "assigneeName", "dob", "email", "phoneNum"]
   };
 
@@ -305,6 +320,7 @@ function detectEntities(question, intent) {
 
   return entities.length > 0 ? entities : null;
 }
+
 
 
 
@@ -426,12 +442,13 @@ app.post("/process-sql", async (req, res) => {
 
         // Step 3: Request missing details if needed
         if (missingEntities.length > 0) {
-            return res.json({
-                output: `I need more details. Please provide: ${missingEntities.map(e => `@${e}`).join(", ")}`,
-                context: "Awaiting more details"
-            });
-        }
-
+          console.log("⚠️ Requesting Missing Entities:", missingEntities);
+          return res.json({
+              output: `I need more details. Please provide: ${missingEntities.map(e => `@${e}`).join(", ")}`,
+              context: "Awaiting more details"
+          });
+      }
+      
         // Step 4: Proceed with response when all details are collected
         const finalResponse = await finalChain.invoke({ question });
         const finalText = typeof finalResponse === "string"
@@ -455,6 +472,8 @@ app.post("/process-sql", async (req, res) => {
             message: "An unexpected error occurred. Please try again." 
         });
     }
+
+    console.log("🟢 SQL Query to Run:", cleanSqlQuery(query));
 });
 
 
