@@ -195,50 +195,42 @@ function cleanSqlQuery(query) {
 //     }
 //   });
 
-const prompt = PromptTemplate.fromTemplate(
-  `You are a precise SQL query generator. Given a natural language question, create an SQL query that follows these STRICT guidelines:
-
+const prompt = PromptTemplate.fromTemplate(`
+  You are a precise SQL query generator. Given a natural language question, create an SQL query that follows these STRICT guidelines:
+  
   1. Use ONLY the exact table and column names from this schema: {schema}
   2. Use COUNT() functions when the question asks "how many"
   3. Match the query structure to the question's intent (counting, listing, filtering)
   4. Use JOINs when needed to combine multiple tables
-  5. If required fields are missing, ask the user for those details before attempting execution
-  6. Do NOT explain—return only the SQL query
+  5. Do NOT explain—return only the SQL query
 
   User question: {question}
+  
+  SQL Query:
+  `);
 
-  SQL Query:`
-);
-
-const sqlQueryChain = RunnableSequence.from([
-  {
-    schema: async () => {
-      const schemaInfo = await db.getTableInfo();
-      if (!schemaInfo || Object.keys(schemaInfo).length === 0) {
-        throw new Error("Database schema is empty or undefined.");
-      }
-      return schemaInfo;
+  const sqlQueryChain = RunnableSequence.from([
+    {
+      schema: async () => {
+        const schemaInfo = await db.getTableInfo();
+        if (!schemaInfo || Object.keys(schemaInfo).length === 0) {
+          throw new Error("Database schema is empty or undefined.");
+        }
+        return schemaInfo;
+      },
+      question: (input) => input.question,
     },
-    question: (input) => input.question,
-  },
-  prompt,
-  llm.bind({ stop: ["\nSQLResult:"] }),
-  new StringOutputParser(),
-  async (query) => {
-    if (!query || query.trim() === "") {
-      throw new Error("Generated SQL query is empty.");
+    prompt,
+    llm.bind({ stop: ["\nSQLResult:"] }),
+    new StringOutputParser(),
+    async (query) => {
+      if (!query || query.trim() === "") {
+        throw new Error("Generated SQL query is empty.");
+      }
+      return query;
     }
-    return query;
-  }
-]);
-
-// Detect missing fields
-function detectMissingFields(question) {
-  const requiredFields = ["id", "name", "taskStatus", "taskAssignee", "description", "start", "end", "priority"];
-  const foundFields = requiredFields.filter(field => question.toLowerCase().includes(field));
-
-  return requiredFields.filter(field => !foundFields.includes(field));
-}
+  ]);
+  
 
 // Function to detect intents
 function detectIntent(question) {
@@ -256,15 +248,42 @@ function detectIntent(question) {
   return "general-query";
 }
 
-const finalResponsePrompt = PromptTemplate.fromTemplate(
-  `You are a helpful database assistant. Provide a clear, accurate answer based ONLY on these SQL results.
 
+function detectMissingFields(question) {
+  const requiredFields = ["id", "name", "taskStatus", "taskAssignee", "description", "start", "end", "priority"];
+  const foundFields = requiredFields.filter(field => question.toLowerCase().includes(field));
+
+  return requiredFields.filter(field => !foundFields.includes(field));
+}
+
+// Function to detect entities
+function detectEntities(question) {
+  const entities = [];
+  if (!question || typeof question !== "string") {
+    console.error("Invalid question input:", question);
+    return entities.length > 0 ? entities : null;
+  }
+  const qLower = question.toLowerCase();
+
+  if (qLower.includes("email")) entities.push("email");
+  if (qLower.includes("priority")) entities.push("priority");
+  if (qLower.includes("assignee")) entities.push("taskAssignee");
+  if (qLower.includes("task name")) entities.push("task_name");
+  if (qLower.includes("status")) entities.push("taskStatus");
+
+  return entities.length > 0 ? entities : null;
+}
+
+const finalResponsePrompt = PromptTemplate.fromTemplate(`
+  You are a helpful database assistant. Provide a clear, accurate answer based ONLY on these SQL results.
+  
   GUIDELINES:
   1. Answer the question directly and briefly
   2. DO NOT mention SQL or queries
   3. If the result is a count, give the number directly
   4. Use natural, simple language
-  5. If required fields are missing, ask the user for those details before proceeding
+  5. If intent or entities are detected, instruct the user, otherwise ignore them.
+  6. If there is any missing information in the {question} and the {response} then return it as the answer.
 
   Question: {question}
   SQL Result: {response}
@@ -272,8 +291,8 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(
   {intentMessage}
   {entityMessage}
 
-  Your answer:`
-);
+  Your answer:
+  `);
 
 const finalChain = RunnableSequence.from([
   {
@@ -282,30 +301,31 @@ const finalChain = RunnableSequence.from([
   },
   async (input) => {
     const query = input.query;
-
+  
     try {
       if (!query || query.trim() === "") {
         throw new Error("SQL query is empty.");
       }
-
+  
       const missingFields = detectMissingFields(input.question);
       if (missingFields.length > 0) {
         return `I need additional details: ${missingFields.join(", ")}. Could you provide them?`;
       }
-
+      
       const response = await db.run(cleanSqlQuery(query));
       const intent = detectIntent(input.question);
       const entities = detectEntities(input.question);
-
+  
+      // Ensure intentMessage and entityMessage are always defined
       const intentMessage = intent !== "general-query" ? `📌 **Intent Detected:** ${intent}` : "📌 **Intent Detected:** None";
       const entityMessage = entities?.length ? `🔍 **Entities Identified:** ${entities.join(", ")}` : "🔍 **Entities Identified:** None";
-
+  
       return {
         question: input.question,
         query,
         response,
-        intentMessage: intentMessage || "",
-        entityMessage: entityMessage || "",
+        intentMessage: intentMessage || "", // Always present
+        entityMessage: entityMessage || "", // Always present
       };
     } catch (error) {
       console.error("❌ SQL Execution Error:", error);
@@ -322,22 +342,13 @@ const finalChain = RunnableSequence.from([
   new StringOutputParser(),
 ]);
 
-
 app.post("/process-sql", async (req, res) => {
   try {
     console.log("Received request:", req.body); // Debugging
 
     // Extract question from multiple possible locations
     const question = req.body.question || req.query.question || req.body.input?.text;
-    if (!question || question.trim() === "") {
-      return res.status(400).json({ error: "Missing question parameter." });
-    }
     console.log("📝 Processing:", question);
-
-    if (!question || typeof question !== "string" || !question.trim()) {
-      return res.status(400).json({ error: "Invalid or empty question." });
-    }
-    
 
     const finalResponse = await finalChain.invoke({ question });
     const finalText = typeof finalResponse === "string" ? finalResponse : finalResponse.text || JSON.stringify(finalResponse);
@@ -347,7 +358,7 @@ app.post("/process-sql", async (req, res) => {
     res.json({ output:  finalText } );
     console.log("📩 Received request:");
     console.log("Headers:", req.headers);
-    console.log("Received Data:", JSON.stringify(req.body, null, 2));
+    console.log("Body:", JSON.stringify(req.body, null, 2)); // Pretty-printing for clarity
     console.log("Query Params:", req.query);
 
 
