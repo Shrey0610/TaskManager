@@ -248,14 +248,6 @@ function detectIntent(question) {
   return "general-query";
 }
 
-
-function detectMissingFields(question) {
-  const requiredFields = ["id", "name", "taskStatus", "taskAssignee", "description", "start", "end", "priority"];
-  const foundFields = requiredFields.filter(field => question.toLowerCase().includes(field));
-
-  return requiredFields.filter(field => !foundFields.includes(field));
-}
-
 // Function to detect entities
 function detectEntities(question) {
   const entities = [];
@@ -307,11 +299,6 @@ const finalChain = RunnableSequence.from([
         throw new Error("SQL query is empty.");
       }
   
-      const missingFields = detectMissingFields(input.question);
-      if (missingFields.length > 0) {
-        return `I need additional details: ${missingFields.join(", ")}. Could you provide them?`;
-      }
-      
       const response = await db.run(cleanSqlQuery(query));
       const intent = detectIntent(input.question);
       const entities = detectEntities(input.question);
