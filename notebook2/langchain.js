@@ -276,19 +276,36 @@ function detectIntent(question, previousContext = null) {
 
 
 // Function to detect entities
-function detectEntities(question) {
-  const detectedEntities = [];
+function detectEntities(question, intent) {
+  const entities = [];
 
-  // Simplified logic using WatsonX entity detection capabilities
-  if (question.toLowerCase().includes("task")) detectedEntities.push("taskName");
-  if (question.toLowerCase().includes("priority")) detectedEntities.push("priority");
-  if (question.toLowerCase().includes("status")) detectedEntities.push("taskStatus");
-  if (question.toLowerCase().includes("assignee")) detectedEntities.push("assigneeName");
-  if (question.toLowerCase().includes("start")) detectedEntities.push("start");
-  if (question.toLowerCase().includes("end")) detectedEntities.push("end");
+  const qLower = question.toLowerCase();
 
-  return detectedEntities.length > 0 ? detectedEntities : null;
+  const entityMap = {
+      "Task-related": ["taskName", "priority", "taskStatus", "start", "end", "assigneeName"],
+      "Assignee-related": ["assigneeName", "dob", "email", "phoneNum"],
+      "combined-tasks_assignees": ["taskName", "priority", "taskStatus", "start", "end", "assigneeName", "dob", "email", "phoneNum"]
+  };
+
+  const relevantEntities = entityMap[intent] || [];
+
+  relevantEntities.forEach(entity => {
+      if (
+          (entity === "taskName" && (qLower.includes("task 8") || qLower.includes("task name"))) ||
+          (entity === "taskStatus" && (qLower.includes("not started") || qLower.includes("status"))) ||
+          (entity === "priority" && qLower.includes("priority")) ||
+          (entity === "assigneeName" && qLower.includes("assignee")) ||
+          (entity === "dob" && qLower.includes("date of birth")) ||
+          (entity === "email" && qLower.includes("email")) ||
+          (entity === "phoneNum" && qLower.includes("phone"))
+      ) {
+          entities.push(entity);
+      }
+  });
+
+  return entities.length > 0 ? entities : null;
 }
+
 
 
 const finalResponsePrompt = PromptTemplate.fromTemplate(`
