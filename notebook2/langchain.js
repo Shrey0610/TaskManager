@@ -329,7 +329,15 @@ app.post("/process-sql", async (req, res) => {
 
     // Extract question from multiple possible locations
     const question = req.body.question || req.query.question || req.body.input?.text;
+    if (!question || question.trim() === "") {
+      return res.status(400).json({ error: "Missing question parameter." });
+    }
     console.log("📝 Processing:", question);
+
+    if (!question || typeof question !== "string" || !question.trim()) {
+      return res.status(400).json({ error: "Invalid or empty question." });
+    }
+    
 
     const finalResponse = await finalChain.invoke({ question });
     const finalText = typeof finalResponse === "string" ? finalResponse : finalResponse.text || JSON.stringify(finalResponse);
@@ -339,7 +347,7 @@ app.post("/process-sql", async (req, res) => {
     res.json({ output:  finalText } );
     console.log("📩 Received request:");
     console.log("Headers:", req.headers);
-    console.log("Body:", JSON.stringify(req.body, null, 2)); // Pretty-printing for clarity
+    console.log("Received Data:", JSON.stringify(req.body, null, 2));
     console.log("Query Params:", req.query);
 
 
