@@ -233,41 +233,13 @@ const prompt = PromptTemplate.fromTemplate(`
   
 
 // Function to detect intents
-// function detectIntent(question) {
-//   if (!question || typeof question !== "string") {
-//     console.error("Invalid question input:", question);
-//     return "general-query";
-//   }
-//   const qLower = question.toLowerCase();
-
-//   if (qLower.includes("how many") && qLower.includes("employee")) return "count-employees";
-//   if (qLower.includes("how many") && qLower.includes("task")) return "count-tasks";
-//   if (qLower.includes("who") || qLower.includes("which")) return "entity-identification";
-//   if (qLower.includes("list") || qLower.includes("show me")) return "list-entities";
-
-//   return "general-query";
-// }
-// Function to detect intents
-function detectIntent(question, previousContext = null) {
+function detectIntent(question) {
   if (!question || typeof question !== "string") {
     console.error("Invalid question input:", question);
     return "general-query";
   }
-
   const qLower = question.toLowerCase();
 
-  if (previousContext && (
-    qLower.includes("what about") ||
-    qLower.includes("and for") ||
-    qLower.includes("should i") ||
-    qLower.includes("can you clarify") ||
-    qLower.includes("provide more details")
-  )) {
-    return "follow-up";
-  }
-
-  if (qLower.includes("add new employee")) return "add-employee";
-  if (qLower.includes("add new task")) return "add-task";
   if (qLower.includes("how many") && qLower.includes("employee")) return "count-employees";
   if (qLower.includes("how many") && qLower.includes("task")) return "count-tasks";
   if (qLower.includes("who") || qLower.includes("which")) return "entity-identification";
@@ -276,43 +248,23 @@ function detectIntent(question, previousContext = null) {
   return "general-query";
 }
 
-
-
 // Function to detect entities
-function detectEntities(question, intent) {
+function detectEntities(question) {
   const entities = [];
-
+  if (!question || typeof question !== "string") {
+    console.error("Invalid question input:", question);
+    return entities.length > 0 ? entities : null;
+  }
   const qLower = question.toLowerCase();
 
-  const entityMap = {
-      "Task-related": ["taskName", "priority", "taskStatus", "start", "end", "assigneeName"],
-      "Assignee-related": ["assigneeName", "dob", "email", "phoneNum"],
-      "add-employee": ["assigneeName", "dob", "email", "phoneNum", "position"],
-      "add-task": ["taskName", "priority", "taskStatus", "assigneeName", "start", "end"],
-      "combined-tasks_assignees": ["taskName", "priority", "taskStatus", "start", "end", "assigneeName", "dob", "email", "phoneNum"]
-  };
-
-  const relevantEntities = entityMap[intent] || [];
-
-  relevantEntities.forEach(entity => {
-      if (
-          (entity === "taskName" && (qLower.includes("task 8") || qLower.includes("task name"))) ||
-          (entity === "taskStatus" && (qLower.includes("not started") || qLower.includes("status"))) ||
-          (entity === "priority" && qLower.includes("priority")) ||
-          (entity === "assigneeName" && qLower.includes("assignee")) ||
-          (entity === "dob" && qLower.includes("date of birth")) ||
-          (entity === "email" && qLower.includes("email")) ||
-          (entity === "phoneNum" && qLower.includes("phone"))
-      ) {
-          entities.push(entity);
-      }
-  });
+  if (qLower.includes("email")) entities.push("email");
+  if (qLower.includes("priority")) entities.push("priority");
+  if (qLower.includes("assignee")) entities.push("taskAssignee");
+  if (qLower.includes("task name")) entities.push("task_name");
+  if (qLower.includes("status")) entities.push("taskStatus");
 
   return entities.length > 0 ? entities : null;
 }
-
-
-
 
 const finalResponsePrompt = PromptTemplate.fromTemplate(`
   You are a helpful database assistant. Provide a clear, accurate answer based ONLY on these SQL results.
@@ -376,96 +328,31 @@ const finalChain = RunnableSequence.from([
   new StringOutputParser(),
 ]);
 
-// app.post("/process-sql", async (req, res) => {
-//   try {
-//     console.log("Received request:", req.body); // Debugging
-
-//     // Extract question from multiple possible locations
-//     const question = req.body.question || req.query.question || req.body.input?.text;
-//     console.log("📝 Processing:", question);
-
-//     const finalResponse = await finalChain.invoke({ question });
-//     const finalText = typeof finalResponse === "string" ? finalResponse : finalResponse.text || JSON.stringify(finalResponse);
-
-
-//     console.log("✅ Response:", finalText);
-//     res.json({ output:  finalText } );
-//     console.log("📩 Received request:");
-//     console.log("Headers:", req.headers);
-//     console.log("Body:", JSON.stringify(req.body, null, 2)); // Pretty-printing for clarity
-//     console.log("Query Params:", req.query);
-
-
-//   } catch (error) {
-//     console.error("❌ Error processing request:", error);
-//     res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
-//   }
-// });
-
-let previousQuestions = []; // Track previous questions
-
 app.post("/process-sql", async (req, res) => {
-    try {
-        console.log("📝 Received Request:", req.body);
+  try {
+    console.log("Received request:", req.body); // Debugging
 
-        const question = req.body.question || req.query.question || req.body.input?.text;
-        console.log("🟡 Incoming Question:", question);
+    // Extract question from multiple possible locations
+    const question = req.body.question || req.query.question || req.body.input?.text;
+    console.log("📝 Processing:", question);
 
-        previousQuestions.push(question); // Track the question
+    const finalResponse = await finalChain.invoke({ question });
+    const finalText = typeof finalResponse === "string" ? finalResponse : finalResponse.text || JSON.stringify(finalResponse);
 
-        // Step 1: Detect Intent and Entities
-        const intent = detectIntent(question, previousQuestions);
-        console.log("📌 Detected Intent:", intent);
 
-        const detectedEntities = detectEntities(question);
-        console.log("🔍 Detected Entities:", detectedEntities);
+    console.log("✅ Response:", finalText);
+    res.json({ output:  finalText } );
+    console.log("📩 Received request:");
+    console.log("Headers:", req.headers);
+    console.log("Body:", JSON.stringify(req.body, null, 2)); // Pretty-printing for clarity
+    console.log("Query Params:", req.query);
 
-        const requiredEntities = {
-            "Task-related": ["taskName", "priority", "start", "end"],
-            "Assignee-related": ["assigneeName", "dob", "email", "phoneNum"]
-        };
 
-        // Step 2: Identify missing entities
-        const gatheredEntities = detectedEntities || [];
-        const missingEntities = requiredEntities[intent]?.filter(entity => !gatheredEntities.includes(entity)) || [];
-        console.log("❗ Missing Entities:", missingEntities);
-
-        // Step 3: Request missing details if needed
-        if (missingEntities.length > 0) {
-          console.log("⚠️ Requesting Missing Entities:", missingEntities);
-          return res.json({
-              output: `I need more details. Please provide: ${missingEntities.map(e => `@${e}`).join(", ")}`,
-              context: "Awaiting more details"
-          });
-      }
-      
-        // Step 4: Proceed with response when all details are collected
-        const finalResponse = await finalChain.invoke({ question });
-        const finalText = typeof finalResponse === "string"
-            ? finalResponse
-            : finalResponse.text || JSON.stringify(finalResponse);
-
-        console.log("✅ Final Response:", finalText);
-
-        // Clear previous questions after successful response
-        previousQuestions = [];
-
-        return res.json({
-            output: finalText,
-            context: "Request processed successfully"
-        });
-
-    } catch (error) {
-        console.error("❌ Error Processing Request:", error);
-        res.status(500).json({ 
-            error: "Query Processing Error", 
-            message: "An unexpected error occurred. Please try again." 
-        });
-    }
+  } catch (error) {
+    console.error("❌ Error processing request:", error);
+    res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
+  }
 });
-
-
-
 
 
 
