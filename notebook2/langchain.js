@@ -472,8 +472,6 @@ app.post("/process-sql", async (req, res) => {
             message: "An unexpected error occurred. Please try again." 
         });
     }
-
-    console.log("🟢 SQL Query to Run:", cleanSqlQuery(query));
 });
 
 
