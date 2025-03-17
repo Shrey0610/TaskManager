@@ -396,52 +396,94 @@ const finalChain = RunnableSequence.from([
 //   }
 // });
 
-let conversationContext = {}; // Store conversation context dynamically
+let conversationContext = {}; // Dynamic context storage
 
 app.post("/process-sql", async (req, res) => {
-    const question = req.body.question || req.query.question || req.body.input?.text;
-    const previousContext = conversationContext[req.body.sessionId] || {}; 
+    try {
+        console.log("📝 Received Request:", req.body);
 
-    const intent = detectIntent(question, previousContext.intent);
-    const detectedEntities = detectEntities(question, intent);
+        const question = req.body.question || req.query.question || req.body.input?.text;
+        const sessionId = req.body.sessionId;
 
-    // Initialize context if it's a new conversation
-    if (!previousContext.intent) {
-        conversationContext[req.body.sessionId] = { intent, entities: detectedEntities || [] };
-        return res.json({
-            output: `Sure! Please provide more information related to it.`,
-            context: "Awaiting complete information"
+        // Initialize or retrieve context
+        const previousContext = conversationContext[sessionId] || {};
+
+        // Step 1: Detect Intent and Entities
+        const intent = detectIntent(question, previousContext.intent);
+        const detectedEntities = detectEntities(question);
+
+        // Define key required entities
+        const requiredEntities = {
+            "Task-related": ["taskName", "priority", "start", "end"],
+            "Assignee-related": ["assigneeName", "dob", "email", "phoneNum"]
+        };
+
+        // Initialize context if new
+        if (!previousContext.intent) {
+            conversationContext[sessionId] = {
+                intent,
+                entities: detectedEntities || [],
+                state: "question"
+            };
+            return res.json({
+                output: "Sure! Please provide more information related to it.",
+                context: "Awaiting complete information"
+            });
+        }
+
+        // Step 2: Track entities and identify gaps
+        conversationContext[sessionId].entities = [
+            ...new Set([...previousContext.entities, ...(detectedEntities || [])])
+        ];
+
+        const currentEntities = conversationContext[sessionId].entities;
+        const missingEntities = requiredEntities[intent]?.filter(entity => !currentEntities.includes(entity)) || [];
+
+        // Step 3: Handle Output Stage (Missing Data)
+        if (missingEntities.length > 0) {
+            conversationContext[sessionId].state = "output";
+            return res.json({
+                output: `I need more details. Please provide: ${missingEntities.map(e => `@${e}`).join(", ")}`,
+                context: "Awaiting more details"
+            });
+        }
+
+        // Step 4: Response Stage (All data gathered)
+        if (conversationContext[sessionId].state === "output" && missingEntities.length === 0) {
+            conversationContext[sessionId].state = "response";
+            return res.json({
+                output: "All details received! Proceeding with your request...",
+                context: "Processing..."
+            });
+        }
+
+        // Step 5: FinalChain Stage (Final Execution)
+        if (conversationContext[sessionId].state === "response") {
+            const finalResponse = await finalChain.invoke({ question });
+            const finalText = typeof finalResponse === "string"
+                ? finalResponse
+                : finalResponse.text || JSON.stringify(finalResponse);
+
+            console.log("✅ Final Response:", finalText);
+
+            // Clear context after completion
+            delete conversationContext[sessionId];
+
+            return res.json({
+                output: finalText,
+                context: "Request processed successfully"
+            });
+        }
+
+    } catch (error) {
+        console.error("❌ Error processing request:", error);
+        res.status(500).json({ 
+            error: "Query Processing Error", 
+            message: "An unexpected error occurred. Please try again." 
         });
     }
-
-    // Update context with new entities
-    conversationContext[req.body.sessionId].entities = [
-        ...new Set([...previousContext.entities, ...(detectedEntities || [])])
-    ];
-
-    const requiredEntities = {
-        "Task-related": ["taskName", "priority", "taskStatus", "start", "end", "assigneeName"],
-        "Assignee-related": ["assigneeName", "dob", "email", "phoneNum"],
-        "combined-tasks_assignees": ["taskName", "priority", "taskStatus", "start", "end", "assigneeName", "dob", "email", "phoneNum"]
-    };
-
-    const currentEntities = conversationContext[req.body.sessionId].entities;
-    const missingEntities = requiredEntities[intent]?.filter(entity => !currentEntities.includes(entity)) || [];
-
-    if (missingEntities.length > 0) {
-        const missingDetails = missingEntities.map(e => `@${e}`).join(", ");
-        return res.json({
-            output: `Got it. But what about its ${missingDetails}?`,
-            context: "Awaiting complete information"
-        });
-    }
-
-    // Final Step: All entities are filled — proceed with SQL generation
-    delete conversationContext[req.body.sessionId]; // Clear context after completion
-    return res.json({
-        output: `All details received! Proceeding with your request...`
-    });
 });
+
 
 
 
