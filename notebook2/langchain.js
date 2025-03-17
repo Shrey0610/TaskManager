@@ -312,8 +312,6 @@ const finalChain = RunnableSequence.from([
         response,
         intentMessage: intentMessage || "", // Always present
         entityMessage: entityMessage || "", // Always present
-        previous_query: input.question,  // Store the last question
-        previous_entities: entities || [] // Store detected entities
       };
     } catch (error) {
       console.error("❌ SQL Execution Error:", error);
@@ -335,50 +333,15 @@ app.post("/process-sql", async (req, res) => {
     console.log("Received request:", req.body); // Debugging
 
     // Extract question from multiple possible locations
-    // const question = req.body.question || req.query.question || req.body.input?.text;
-    // console.log("📝 Processing:", question);
-
-    // const finalResponse = await finalChain.invoke({ question });
-    // const finalText = typeof finalResponse === "string" ? finalResponse : finalResponse.text || JSON.stringify(finalResponse);
-
-
-    // console.log("✅ Response:", finalText);
-    // res.json({ output:  finalText } );
-
     const question = req.body.question || req.query.question || req.body.input?.text;
-console.log("📝 Processing:", question);
+    console.log("📝 Processing:", question);
 
-// Extract previous data from request body if available
-const previousQuery = req.body.previous_query || "";
-const previousEntities = req.body.previous_entities || {};
-
-// Refine the question for follow-ups, clarifications, etc.
-let refinedQuestion = question;
-if (question.toLowerCase().includes("follow-ups") || 
-    question.toLowerCase().includes("Clarifications") || 
-    question.toLowerCase().includes("Comparisons") ||
-    question.toLowerCase().includes("Correction") ||  question.toLowerCase().includes("Confirmation")) {
-
-    // Combine previous query and entities for context
-    refinedQuestion = `${previousQuery} ${question}`;
-}
-
-// Process with refined question
-const finalResponse = await finalChain.invoke({ 
-    question: refinedQuestion,
-    previous_entities: previousEntities
-});
-
-// Handle response format
-const finalText = typeof finalResponse === "string" 
-    ? finalResponse 
-    : finalResponse.text || JSON.stringify(finalResponse);
-
-console.log("✅ Response:", finalText);
-res.json({ output: finalText });
+    const finalResponse = await finalChain.invoke({ question });
+    const finalText = typeof finalResponse === "string" ? finalResponse : finalResponse.text || JSON.stringify(finalResponse);
 
 
-
+    console.log("✅ Response:", finalText);
+    res.json({ output:  finalText } );
     console.log("📩 Received request:");
     console.log("Headers:", req.headers);
     console.log("Body:", JSON.stringify(req.body, null, 2)); // Pretty-printing for clarity
