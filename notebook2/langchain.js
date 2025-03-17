@@ -278,20 +278,26 @@ function detectIntent(question, previousContext = null) {
 // Function to detect entities
 function detectEntities(question) {
   const entities = [];
-  if (!question || typeof question !== "string") {
-    console.error("Invalid question input:", question);
-    return entities.length > 0 ? entities : null;
-  }
+  if (!question || typeof question !== "string") return null;
+
   const qLower = question.toLowerCase();
 
   if (qLower.includes("email")) entities.push("email");
   if (qLower.includes("priority")) entities.push("priority");
-  if (qLower.includes("assignee")) entities.push("taskAssignee");
-  if (qLower.includes("task name")) entities.push("task_name");
-  if (qLower.includes("status")) entities.push("taskStatus");
+  if (qLower.includes("assignee") || qLower.includes("assign")) entities.push("assigneeName");
+  if (qLower.includes("task")) entities.push("taskName");
+  if (qLower.includes("not started") || qLower.includes("in progress") || qLower.includes("completed"))
+      entities.push("taskStatus");
 
-  return entities.length > 0 ? entities : null;
+  const employeeMatch = question.match(/\b(add|hire)\s(\w+)\b/);
+  if (employeeMatch) entities.push("employeeName");
+
+  const taskMatch = question.match(/\b(Task\s\d+)\b/i);
+  if (taskMatch) entities.push("taskName");
+
+  return entities.length > 0 ? entities : [];
 }
+
 
 const finalResponsePrompt = PromptTemplate.fromTemplate(`
   You are a helpful database assistant. Provide a clear, accurate answer based ONLY on these SQL results.
@@ -386,33 +392,41 @@ app.post("/process-sql", async (req, res) => {
       console.log("Received request:", req.body);
 
       const question = req.body.question || req.query.question || req.body.input?.text;
-      const previousContext = req.body.previousContext || null; // Context tracking
+      const previousContext = req.body.previousContext || null;
 
       console.log("📝 Processing:", question);
 
-      const intent = detectIntent(question, previousContext); // Pass context for follow-up detection
+      const intent = detectIntent(question, previousContext);
       const entities = detectEntities(question);
 
-      const requiredEntities = ["taskName", "assigneeName", "priority", "taskStatus", "email"]; // Define essential data points
+      // Required entities by intent type
+      const requiredEntitiesByIntent = {
+          "add-employee": ["employeeName", "position", "department"],
+          "assign-task": ["taskName", "assigneeName", "priority"],
+          "create-task": ["taskName", "taskDescription", "priority", "dueDate"],
+          "update-task": ["taskName", "taskStatus", "priority"],
+          "general-query": []
+      };
+
+      const requiredEntities = requiredEntitiesByIntent[intent] || [];
       const missingEntities = requiredEntities.filter(entity => !entities.includes(entity));
 
       if (missingEntities.length > 0) {
           const missingDetails = missingEntities.map(e => `@${e}`).join(", ");
           console.log(`❗ Missing details: ${missingDetails}`);
-          
+
           return res.json({
               output: `Please provide the following details to proceed: ${missingDetails}`,
               context: "Awaiting complete information"
           });
       }
 
-      const intentMessage = intent !== "general-query"
-          ? `📌 **Intent Detected:** ${intent}`
-          : "📌 **Intent Detected:** None";
-
-      const entityMessage = entities?.length
+      const intentMessage = `📌 **Intent Detected:** ${intent}`;
+      const entityMessage = entities.length
           ? `🔍 **Entities Identified:** ${entities.join(", ")}`
           : "🔍 **Entities Identified:** None";
+
+      console.log(intentMessage, entityMessage);
 
       const finalResponse = await finalChain.invoke({ question });
       const finalText = typeof finalResponse === "string"
