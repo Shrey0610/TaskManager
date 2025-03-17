@@ -323,6 +323,33 @@ const finalChain = RunnableSequence.from([
 ]);
 
 
+app.post("/process-sql", async (req, res) => {
+  try {
+    console.log("Received request:", req.body); // Debugging
+
+    // Extract question from multiple possible locations
+    const question = req.body.question || req.query.question || req.body.input?.text;
+    console.log("📝 Processing:", question);
+
+    const finalResponse = await finalChain.invoke({ question });
+    const finalText = typeof finalResponse === "string" ? finalResponse : finalResponse.text || JSON.stringify(finalResponse);
+
+
+    console.log("✅ Response:", finalText);
+    res.json({ output:  finalText } );
+    console.log("📩 Received request:");
+    console.log("Headers:", req.headers);
+    console.log("Body:", JSON.stringify(req.body, null, 2)); // Pretty-printing for clarity
+    console.log("Query Params:", req.query);
+
+
+  } catch (error) {
+    console.error("❌ Error processing request:", error);
+    res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
+  }
+});
+
+
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
