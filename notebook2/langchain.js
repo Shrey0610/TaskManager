@@ -225,20 +225,10 @@ const prompt = PromptTemplate.fromTemplate(`
     new StringOutputParser(),
     async (query) => {
       if (!query || query.trim() === "") {
-          throw new Error("Generated SQL query is empty.");
+        throw new Error("Generated SQL query is empty.");
       }
-  
-      const paramCount = (query.match(/\?/g) || []).length;
-      const providedValuesCount = Object.values(input).length;
-  
-      if (paramCount !== providedValuesCount) {
-          console.error(`❗ SQL Parameter Mismatch: Expected ${paramCount}, Received ${providedValuesCount}`);
-          throw new Error("SQL parameter mismatch.");
-      }
-  
       return query;
-  }
-  
+    }
   ]);
   
 
