@@ -277,25 +277,17 @@ function detectIntent(question, previousContext = null) {
 
 // Function to detect entities
 function detectEntities(question) {
-  const entities = [];
-  if (!question || typeof question !== "string") return null;
+  const detectedEntities = [];
 
-  const qLower = question.toLowerCase();
+  // Simplified logic using WatsonX entity detection capabilities
+  if (question.toLowerCase().includes("task")) detectedEntities.push("taskName");
+  if (question.toLowerCase().includes("priority")) detectedEntities.push("priority");
+  if (question.toLowerCase().includes("status")) detectedEntities.push("taskStatus");
+  if (question.toLowerCase().includes("assignee")) detectedEntities.push("assigneeName");
+  if (question.toLowerCase().includes("start")) detectedEntities.push("start");
+  if (question.toLowerCase().includes("end")) detectedEntities.push("end");
 
-  if (qLower.includes("email")) entities.push("email");
-  if (qLower.includes("priority")) entities.push("priority");
-  if (qLower.includes("assignee") || qLower.includes("assign")) entities.push("assigneeName");
-  if (qLower.includes("task")) entities.push("taskName");
-  if (qLower.includes("not started") || qLower.includes("in progress") || qLower.includes("completed"))
-      entities.push("taskStatus");
-
-  const employeeMatch = question.match(/\b(add|hire)\s(\w+)\b/);
-  if (employeeMatch) entities.push("employeeName");
-
-  const taskMatch = question.match(/\b(Task\s\d+)\b/i);
-  if (taskMatch) entities.push("taskName");
-
-  return entities.length > 0 ? entities : [];
+  return detectedEntities.length > 0 ? detectedEntities : null;
 }
 
 
@@ -387,62 +379,51 @@ const finalChain = RunnableSequence.from([
 //   }
 // });
 
+let conversationContext = {}; // Store conversation context dynamically
+
 app.post("/process-sql", async (req, res) => {
-  try {
-      console.log("Received request:", req.body);
+    const question = req.body.question || req.query.question || req.body.input?.text;
+    const previousContext = conversationContext[req.body.sessionId] || {}; 
 
-      const question = req.body.question || req.query.question || req.body.input?.text;
-      const previousContext = req.body.previousContext || null;
+    const intent = detectIntent(question, previousContext.intent);
+    const detectedEntities = detectEntities(question, intent);
 
-      console.log("📝 Processing:", question);
+    // Initialize context if it's a new conversation
+    if (!previousContext.intent) {
+        conversationContext[req.body.sessionId] = { intent, entities: detectedEntities || [] };
+        return res.json({
+            output: `Sure! Please provide more information related to it.`,
+            context: "Awaiting complete information"
+        });
+    }
 
-      const intent = detectIntent(question, previousContext);
-      const entities = detectEntities(question);
+    // Update context with new entities
+    conversationContext[req.body.sessionId].entities = [
+        ...new Set([...previousContext.entities, ...(detectedEntities || [])])
+    ];
 
-      // Required entities by intent type
-      const requiredEntitiesByIntent = {
-          "add-employee": ["employeeName", "position", "department"],
-          "assign-task": ["taskName", "assigneeName", "priority"],
-          "create-task": ["taskName", "taskDescription", "priority", "dueDate"],
-          "update-task": ["taskName", "taskStatus", "priority"],
-          "general-query": []
-      };
+    const requiredEntities = {
+        "Task-related": ["taskName", "priority", "taskStatus", "start", "end", "assigneeName"],
+        "Assignee-related": ["assigneeName", "dob", "email", "phoneNum"],
+        "combined-tasks_assignees": ["taskName", "priority", "taskStatus", "start", "end", "assigneeName", "dob", "email", "phoneNum"]
+    };
 
-      const requiredEntities = requiredEntitiesByIntent[intent] || [];
-      const missingEntities = requiredEntities.filter(entity => !entities.includes(entity));
+    const currentEntities = conversationContext[req.body.sessionId].entities;
+    const missingEntities = requiredEntities[intent]?.filter(entity => !currentEntities.includes(entity)) || [];
 
-      if (missingEntities.length > 0) {
-          const missingDetails = missingEntities.map(e => `@${e}`).join(", ");
-          console.log(`❗ Missing details: ${missingDetails}`);
+    if (missingEntities.length > 0) {
+        const missingDetails = missingEntities.map(e => `@${e}`).join(", ");
+        return res.json({
+            output: `Got it. But what about its ${missingDetails}?`,
+            context: "Awaiting complete information"
+        });
+    }
 
-          return res.json({
-              output: `Please provide the following details to proceed: ${missingDetails}`,
-              context: "Awaiting complete information"
-          });
-      }
-
-      const intentMessage = `📌 **Intent Detected:** ${intent}`;
-      const entityMessage = entities.length
-          ? `🔍 **Entities Identified:** ${entities.join(", ")}`
-          : "🔍 **Entities Identified:** None";
-
-      console.log(intentMessage, entityMessage);
-
-      const finalResponse = await finalChain.invoke({ question });
-      const finalText = typeof finalResponse === "string"
-          ? finalResponse
-          : finalResponse.text || JSON.stringify(finalResponse);
-
-      console.log("✅ Response:", finalText);
-      res.json({
-          output: finalText,
-          context: intent === "follow-up" ? "Follow-up identified" : "New query"
-      });
-
-  } catch (error) {
-      console.error("❌ Error processing request:", error);
-      res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
-  }
+    // Final Step: All entities are filled — proceed with SQL generation
+    delete conversationContext[req.body.sessionId]; // Clear context after completion
+    return res.json({
+        output: `All details received! Proceeding with your request...`
+    });
 });
 
 
