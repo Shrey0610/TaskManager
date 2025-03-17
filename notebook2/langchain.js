@@ -233,12 +233,38 @@ const prompt = PromptTemplate.fromTemplate(`
   
 
 // Function to detect intents
-function detectIntent(question) {
+// function detectIntent(question) {
+//   if (!question || typeof question !== "string") {
+//     console.error("Invalid question input:", question);
+//     return "general-query";
+//   }
+//   const qLower = question.toLowerCase();
+
+//   if (qLower.includes("how many") && qLower.includes("employee")) return "count-employees";
+//   if (qLower.includes("how many") && qLower.includes("task")) return "count-tasks";
+//   if (qLower.includes("who") || qLower.includes("which")) return "entity-identification";
+//   if (qLower.includes("list") || qLower.includes("show me")) return "list-entities";
+
+//   return "general-query";
+// }
+// Function to detect intents
+function detectIntent(question, previousContext = null) {
   if (!question || typeof question !== "string") {
     console.error("Invalid question input:", question);
     return "general-query";
   }
   const qLower = question.toLowerCase();
+
+  // Follow-up detection
+  if (previousContext && (
+    qLower.includes("what about") ||
+    qLower.includes("and for") ||
+    qLower.includes("should i") ||
+    qLower.includes("can you clarify") ||
+    qLower.includes("provide more details")
+  )) {
+    return "follow-up";
+  }
 
   if (qLower.includes("how many") && qLower.includes("employee")) return "count-employees";
   if (qLower.includes("how many") && qLower.includes("task")) return "count-tasks";
@@ -247,6 +273,7 @@ function detectIntent(question) {
 
   return "general-query";
 }
+
 
 // Function to detect entities
 function detectEntities(question) {
@@ -328,31 +355,82 @@ const finalChain = RunnableSequence.from([
   new StringOutputParser(),
 ]);
 
+// app.post("/process-sql", async (req, res) => {
+//   try {
+//     console.log("Received request:", req.body); // Debugging
+
+//     // Extract question from multiple possible locations
+//     const question = req.body.question || req.query.question || req.body.input?.text;
+//     console.log("📝 Processing:", question);
+
+//     const finalResponse = await finalChain.invoke({ question });
+//     const finalText = typeof finalResponse === "string" ? finalResponse : finalResponse.text || JSON.stringify(finalResponse);
+
+
+//     console.log("✅ Response:", finalText);
+//     res.json({ output:  finalText } );
+//     console.log("📩 Received request:");
+//     console.log("Headers:", req.headers);
+//     console.log("Body:", JSON.stringify(req.body, null, 2)); // Pretty-printing for clarity
+//     console.log("Query Params:", req.query);
+
+
+//   } catch (error) {
+//     console.error("❌ Error processing request:", error);
+//     res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
+//   }
+// });
+
 app.post("/process-sql", async (req, res) => {
   try {
-    console.log("Received request:", req.body); // Debugging
+      console.log("Received request:", req.body);
 
-    // Extract question from multiple possible locations
-    const question = req.body.question || req.query.question || req.body.input?.text;
-    console.log("📝 Processing:", question);
+      const question = req.body.question || req.query.question || req.body.input?.text;
+      const previousContext = req.body.previousContext || null; // Context tracking
 
-    const finalResponse = await finalChain.invoke({ question });
-    const finalText = typeof finalResponse === "string" ? finalResponse : finalResponse.text || JSON.stringify(finalResponse);
+      console.log("📝 Processing:", question);
 
+      const intent = detectIntent(question, previousContext); // Pass context for follow-up detection
+      const entities = detectEntities(question);
 
-    console.log("✅ Response:", finalText);
-    res.json({ output:  finalText } );
-    console.log("📩 Received request:");
-    console.log("Headers:", req.headers);
-    console.log("Body:", JSON.stringify(req.body, null, 2)); // Pretty-printing for clarity
-    console.log("Query Params:", req.query);
+      const requiredEntities = ["taskName", "assigneeName", "priority", "taskStatus", "email"]; // Define essential data points
+      const missingEntities = requiredEntities.filter(entity => !entities.includes(entity));
 
+      if (missingEntities.length > 0) {
+          const missingDetails = missingEntities.map(e => `@${e}`).join(", ");
+          console.log(`❗ Missing details: ${missingDetails}`);
+          
+          return res.json({
+              output: `Please provide the following details to proceed: ${missingDetails}`,
+              context: "Awaiting complete information"
+          });
+      }
+
+      const intentMessage = intent !== "general-query"
+          ? `📌 **Intent Detected:** ${intent}`
+          : "📌 **Intent Detected:** None";
+
+      const entityMessage = entities?.length
+          ? `🔍 **Entities Identified:** ${entities.join(", ")}`
+          : "🔍 **Entities Identified:** None";
+
+      const finalResponse = await finalChain.invoke({ question });
+      const finalText = typeof finalResponse === "string"
+          ? finalResponse
+          : finalResponse.text || JSON.stringify(finalResponse);
+
+      console.log("✅ Response:", finalText);
+      res.json({
+          output: finalText,
+          context: intent === "follow-up" ? "Follow-up identified" : "New query"
+      });
 
   } catch (error) {
-    console.error("❌ Error processing request:", error);
-    res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
+      console.error("❌ Error processing request:", error);
+      res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
   }
 });
+
 
 
 
