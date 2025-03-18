@@ -295,16 +295,17 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
   3. If the result is a count, give the number directly
   4. Use natural, simple language
   5. If intent or entities are detected, ask follow-up questions for any missing information
-  *6. Only If the query is to add or update the details in any table and there are missing values, strictly request for them specifics like @assignee_name, @task_name, or @priority or anything ftom the query. If the user provides them only then convert it to the {response}*
+  6. Only If the query is to add or update the details in any table and there are missing values, strictly request for them specifics like @assignee_name, @task_name, or @priority or anything from the query. If the user provides them only then convert it to the {response}
 
-  Question: {question}
-  SQL Result: {response}
+  Question: \${question}
+  SQL Result: \${response}
 
-  {intentMessage}
-  {entityMessage}
+  \${intentMessage}
+  \${entityMessage}
 
   Your answer:
-  `);
+`);
+
 
  function generateFollowUp(question, entities) {
     if (!question || typeof question !== "string") {
@@ -332,14 +333,14 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
 
 
 
-const handleFollowUp = async (question, detectedIntent, detectedEntities) => {
+const handleFollowUp = async (question, detectedIntent, detectedEntities = {}) => {
   if (!question || typeof question !== "string") {
-    return null;
-}
+      return null;
+  }
 
-  const dataModifyingIntents = ["add-task", "update-task", "add-employee"];
+  const dataRequiredIntents = ["update_task", "add_task", "delete_task"]; // Example
   const infoRetrievalIntents = ["fetch-tasks", "get-emails", "calculate-percentage"];
-
+  const isDataRequired = dataRequiredIntents.includes(detectedIntent);
   if (infoRetrievalIntents.includes(detectedIntent)) {
       return null; // No follow-up needed for informational intents
   }
@@ -350,22 +351,32 @@ const handleFollowUp = async (question, detectedIntent, detectedEntities) => {
       "add-employee": ["name", "email", "phoneNum", "dob"],
   };
 
-  const missingFields = requiredFields[detectedIntent]?.filter(
-      (field) => !detectedEntities.includes(field)
-  ) || [];
+  const detectedEntityValues = Array.isArray(detectedEntities) 
+      ? detectedEntities 
+      : Object.values(detectedEntities);
+
+
+const missingFields = isDataRequired
+? requiredFields[detectedIntent].filter(
+(field) => !detectedEntities.includes(field)
+)
+: [];
 
   if (missingFields.length > 0) {
       return {
           question,
           response: `I need the following details to proceed: ${missingFields.join(", ")}.`,
           intentMessage: `📌 **Intent Detected:** ${detectedIntent || "Unknown"}`,
-          entityMessage: `🔍 **Entities Identified:** ${detectedEntities.length > 0 ? detectedEntities.join(", ") : "None"}`,
+          entityMessage: `🔍 **Entities Identified:** ${detectedEntityValues.length > 0 
+              ? detectedEntityValues.join(", ") 
+              : "None"}`,
           followUp: true
       };
   }
 
   return null; // All required details are present
 };
+
 
 const finalChain = RunnableSequence.from([
   {
