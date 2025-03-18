@@ -348,55 +348,55 @@ const finalChain = RunnableSequence.from([
       const intent = detectIntent(input.question);
       const entities = detectEntities(input.question) || [];
 
-      // ✅ Identify missing values based on query type
-      const requiredFields = [];
-      if (intent === "add-task") {
-        requiredFields.push("task_name", "assignee", "priority");
-      } else if (intent === "update-task") {
-        requiredFields.push("task_id", "status");
-      }
+      // ✅ Define required fields for each intent
+      const requiredFields = {
+        "add-task": ["task_name", "assignee", "priority"],
+        "update-task": ["task_id", "status"],
+        "add-employee": ["name", "email", "phoneNum", "dob"],
+      };
 
-      const missingFields = requiredFields.filter(field => !entities.includes(field));
+      const missingFields = requiredFields[intent]?.filter(
+        (field) => !entities.includes(field)
+      ) || [];
 
-      // ✅ Generate follow-up questions if needed
-      const followUp = generateFollowUp(input.question, entities);
-
-      // ✅ Combine follow-up with missing fields prompt
-      if (missingFields.length > 0 || followUp) {
-        const prompt = [
-          missingFields.length > 0
-            ? `I need the following details to proceed: ${missingFields.join(", ")}.`
-            : "",
-          followUp || ""
-        ]
-        .filter(Boolean)
-        .join(" ");  // Combines both messages seamlessly
-
+      if (missingFields.length > 0) {
         return {
           question: input.question,
-          response: prompt,
+          response: `I need the following details to proceed: ${missingFields.join(", ")}.`,
           intentMessage: `📌 **Intent Detected:** ${intent}`,
           entityMessage: `🔍 **Entities Identified:** ${entities.join(", ")}`,
         };
       }
 
-      const response = await db.run(cleanSqlQuery(query));
+      // ✅ Handle Duplicate Entry Errors
+      try {
+        const response = await db.run(cleanSqlQuery(query));
 
-      const intentMessage = intent !== "general-query"
-        ? `📌 **Intent Detected:** ${intent}`
-        : "📌 **Intent Detected:** None";
+        const intentMessage = intent !== "general-query"
+          ? `📌 **Intent Detected:** ${intent}`
+          : "📌 **Intent Detected:** None";
 
-      const entityMessage = entities?.length
-        ? `🔍 **Entities Identified:** ${entities.join(", ")}`
-        : "🔍 **Entities Identified:** None";
+        const entityMessage = entities?.length
+          ? `🔍 **Entities Identified:** ${entities.join(", ")}`
+          : "🔍 **Entities Identified:** None";
 
-      return {
-        question: input.question,
-        query,
-        response: response,
-        intentMessage,
-        entityMessage,
-      };
+        return {
+          question: input.question,
+          query,
+          response,
+          intentMessage,
+          entityMessage,
+        };
+      } catch (dbError) {
+        if (dbError.code === "ER_DUP_ENTRY") {
+          return {
+            question: input.question,
+            response: `⚠️ The employee with this ID already exists. Please try again with a unique ID.`,
+          };
+        }
+
+        throw dbError;
+      }
     } catch (error) {
       console.error("❌ SQL Execution Error:", error);
       return {
@@ -411,6 +411,7 @@ const finalChain = RunnableSequence.from([
   llm,
   new StringOutputParser(),
 ]);
+
 
   
 
