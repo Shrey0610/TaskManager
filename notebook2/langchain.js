@@ -333,6 +333,10 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
 
 
 const handleFollowUp = async (question, detectedIntent, detectedEntities) => {
+  if (!question || typeof question !== "string") {
+    return null;
+}
+
   const dataModifyingIntents = ["add-task", "update-task", "add-employee"];
   const infoRetrievalIntents = ["fetch-tasks", "get-emails", "calculate-percentage"];
 
@@ -410,13 +414,19 @@ const finalChain = RunnableSequence.from([
           return {
               question,
               response: "❌ An error occurred. Please try again.",
+              intentMessage: `📌 **Intent Detected:** ${detectedIntent || "Unknown"}`,
           };
       }
   },
+  async (input) => ({
+      ...input,
+      intentMessage: input.intentMessage || "📌 **Intent Detected:** Unknown",
+  }),
   finalResponsePrompt,
   llm,
   new StringOutputParser(),
 ]);
+
 
 
   
