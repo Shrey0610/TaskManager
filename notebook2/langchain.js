@@ -313,7 +313,7 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
         let entityMessage = "";
   
         if (intent === "add-employee") {
-          const requiredDetails = ["name", "job_title", "department"];  // Define required details
+          const requiredDetails = ["name", "email", "phoneNum", "dob"];  // Define required details
           const providedDetails = entities || [];
   
           const missingDetails = requiredDetails.filter(
