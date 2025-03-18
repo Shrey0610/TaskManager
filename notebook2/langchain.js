@@ -332,80 +332,82 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
 
 
 
+const handleFollowUp = async (question, detectedIntent, detectedEntities) => {
+  const requiredFields = {
+      "add-task": ["task_name", "assignee", "priority"],
+      "update-task": ["task_id", "status"],
+      "add-employee": ["name", "email", "phoneNum", "dob"],
+  };
+
+  const missingFields = requiredFields[detectedIntent]?.filter(
+      (field) => !detectedEntities.includes(field)
+  ) || [];
+
+  if (missingFields.length > 0) {
+      return {
+          question,
+          response: `I need the following details to proceed: ${missingFields.join(", ")}.`,
+          intentMessage: `📌 **Intent Detected:** ${detectedIntent}`,
+          entityMessage: `🔍 **Entities Identified:** ${detectedEntities.join(", ")}`,
+          followUp: true  // Indicate that this is a follow-up request
+      };
+  }
+
+  return null; // No follow-up needed
+};
+
 const finalChain = RunnableSequence.from([
   {
-    question: (input) => input.question,
-    query: sqlQueryChain,
+      question: (input) => input.question,
+      query: sqlQueryChain,
   },
   async (input) => {
-    const query = input.query;
+      const question = input.question;
+      const detectedIntent = detectIntent(question);
+      const detectedEntities = detectEntities(question) || [];
 
-    try {
+      // ✅ Step 1: Check for missing values BEFORE invoking finalChain
+      const followUpResponse = await handleFollowUp(question, detectedIntent, detectedEntities);
+
+      if (followUpResponse) {
+          return followUpResponse;  // Prompt user for missing details
+      }
+
+      // ✅ Step 2: Continue only when all required details are provided
+      const query = input.query;
+
       if (!query || query.trim() === "") {
-        throw new Error("SQL query is empty.");
-      }
-
-      const intent = detectIntent(input.question);
-      const entities = detectEntities(input.question) || [];
-
-      // ✅ Define required fields for each intent
-      const requiredFields = {
-        "add-task": ["task_name", "assignee", "priority"],
-        "update-task": ["task_id", "status"],
-        "add-employee": ["name", "email", "phoneNum", "dob"],
-      };
-
-      const missingFields = requiredFields[intent]?.filter(
-        (field) => !entities.includes(field)
-      ) || [];
-
-      if (missingFields.length > 0) {
-        return {
-          question: input.question,
-          response: `I need the following details to proceed: ${missingFields.join(", ")}.`,
-          intentMessage: `📌 **Intent Detected:** ${intent}`,
-          entityMessage: `🔍 **Entities Identified:** ${entities.join(", ")}`,
-        };
-      }
-
-      // ✅ Handle Duplicate Entry Errors
-      try {
-        const response = await db.run(cleanSqlQuery(query));
-
-        const intentMessage = intent !== "general-query"
-          ? `📌 **Intent Detected:** ${intent}`
-          : "📌 **Intent Detected:** None";
-
-        const entityMessage = entities?.length
-          ? `🔍 **Entities Identified:** ${entities.join(", ")}`
-          : "🔍 **Entities Identified:** None";
-
-        return {
-          question: input.question,
-          query,
-          response,
-          intentMessage,
-          entityMessage,
-        };
-      } catch (dbError) {
-        if (dbError.code === "ER_DUP_ENTRY") {
           return {
-            question: input.question,
-            response: `⚠️ The employee with this ID already exists. Please try again with a unique ID.`,
+              question,
+              response: "I need more details to proceed. Could you provide the missing information?",
+              intentMessage: `📌 **Intent Detected:** ${detectedIntent}`,
+              entityMessage: `🔍 **Entities Identified:** ${detectedEntities.join(", ")}`,
           };
-        }
-
-        throw dbError;
       }
-    } catch (error) {
-      console.error("❌ SQL Execution Error:", error);
-      return {
-        question: input.question,
-        response: "I'm unable to process this request. Please check the question or try again later.",
-        intentMessage: "📌 **Intent Detection Failed**",
-        entityMessage: "🔍 **Entity Detection Failed**"
-      };
-    }
+
+      // ✅ Step 3: Execute the query if all details are present
+      try {
+          const response = await db.run(cleanSqlQuery(query));
+          return {
+              question,
+              query,
+              response: `✅ Successfully processed the request.`,
+              intentMessage: `📌 **Intent Detected:** ${detectedIntent}`,
+              entityMessage: `🔍 **Entities Identified:** ${detectedEntities.join(", ")}`,
+          };
+      } catch (dbError) {
+          if (dbError.code === "ER_DUP_ENTRY") {
+              return {
+                  question,
+                  response: `⚠️ An entry with these details already exists. Please try again with unique information.`,
+              };
+          }
+
+          return {
+              question,
+              response: "❌ An error occurred. Please try again.",
+          };
+      }
   },
   finalResponsePrompt,
   llm,
