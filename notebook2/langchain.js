@@ -266,16 +266,36 @@ function detectEntities(question) {
   return entities.length > 0 ? entities : null;
 }
 
+// const finalResponsePrompt = PromptTemplate.fromTemplate(`
+//   You are a helpful database assistant. Provide a clear, accurate answer based ONLY on these SQL results.
+  
+//   GUIDELINES:
+//   1. Answer the question directly and briefly
+//   2. DO NOT mention SQL or queries
+//   3. If the result is a count, give the number directly
+//   4. Use natural, simple language
+//   5. If intent or entities are detected, instruct the user, otherwise ignore them.
+//   6. If there is any missing information in the {question} and the {response} then return it as the answer.
+
+//   Question: {question}
+//   SQL Result: {response}
+
+//   {intentMessage}
+//   {entityMessage}
+
+//   Your answer:
+//   `);
+
 const finalResponsePrompt = PromptTemplate.fromTemplate(`
   You are a helpful database assistant. Provide a clear, accurate answer based ONLY on these SQL results.
-  
+
   GUIDELINES:
   1. Answer the question directly and briefly
   2. DO NOT mention SQL or queries
   3. If the result is a count, give the number directly
   4. Use natural, simple language
-  5. If intent or entities are detected, instruct the user, otherwise ignore them.
-  6. If there is any missing information in the {question} and the {response} then return it as the answer.
+  5. If intent or entities are detected, ask follow-up questions for any missing information
+  6. If details are missing, guide the user by requesting specifics like @assignee_name, @task_name, or @priority.
 
   Question: {question}
   SQL Result: {response}
@@ -286,48 +306,75 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
   Your answer:
   `);
 
-const finalChain = RunnableSequence.from([
-  {
-    question: (input) => input.question,
-    query: sqlQueryChain,
-  },
-  async (input) => {
-    const query = input.query;
-  
-    try {
-      if (!query || query.trim() === "") {
-        throw new Error("SQL query is empty.");
-      }
-  
-      const response = await db.run(cleanSqlQuery(query));
-      const intent = detectIntent(input.question);
-      const entities = detectEntities(input.question);
-  
-      // Ensure intentMessage and entityMessage are always defined
-      const intentMessage = intent !== "general-query" ? `📌 **Intent Detected:** ${intent}` : "📌 **Intent Detected:** None";
-      const entityMessage = entities?.length ? `🔍 **Entities Identified:** ${entities.join(", ")}` : "🔍 **Entities Identified:** None";
-  
-      return {
-        question: input.question,
-        query,
-        response,
-        intentMessage: intentMessage || "", // Always present
-        entityMessage: entityMessage || "", // Always present
-      };
-    } catch (error) {
-      console.error("❌ SQL Execution Error:", error);
-      return {
-        question: input.question,
-        response: "I'm unable to process this request. Please check the question or try again later.",
-        intentMessage: "📌 **Intent Detection Failed**",
-        entityMessage: "🔍 **Entity Detection Failed**"
-      };
+  function generateFollowUp(question, entities) {
+    if (!question || typeof question !== "string") {
+      return null;
     }
-  },
-  finalResponsePrompt,
-  llm,
-  new StringOutputParser(),
-]);
+  
+    const qLower = question.toLowerCase();
+  
+    if (qLower.includes("assignee") && !entities.includes("taskAssignee")) {
+      return "Can you provide the assignee's name or contact details?";
+    }
+  
+    if (qLower.includes("task") && !entities.some(e => ["task_name", "priority", "taskStatus"].includes(e))) {
+      return "Could you specify the task name, priority, or status?";
+    }
+  
+    return null;
+  }
+  
+
+
+  const finalChain = RunnableSequence.from([
+    {
+      question: (input) => input.question,
+      query: sqlQueryChain,
+    },
+    async (input) => {
+      const query = input.query;
+  
+      try {
+        if (!query || query.trim() === "") {
+          throw new Error("SQL query is empty.");
+        }
+  
+        const response = await db.run(cleanSqlQuery(query));
+        const intent = detectIntent(input.question);
+        const entities = detectEntities(input.question);
+  
+        const intentMessage = intent !== "general-query"
+          ? `📌 **Intent Detected:** ${intent}`
+          : "📌 **Intent Detected:** None";
+  
+        const entityMessage = entities?.length
+          ? `🔍 **Entities Identified:** ${entities.join(", ")}`
+          : "🔍 **Entities Identified:** None";
+  
+        const followUp = generateFollowUp(input.question, entities) || "";
+  
+        return {
+          question: input.question,
+          query,
+          response: followUp || response,
+          intentMessage,
+          entityMessage,
+        };
+      } catch (error) {
+        console.error("❌ SQL Execution Error:", error);
+        return {
+          question: input.question,
+          response: "I'm unable to process this request. Please check the question or try again later.",
+          intentMessage: "📌 **Intent Detection Failed**",
+          entityMessage: "🔍 **Entity Detection Failed**"
+        };
+      }
+    },
+    finalResponsePrompt,
+    llm,
+    new StringOutputParser(),
+  ]);
+  
 
 app.post("/process-sql", async (req, res) => {
   try {

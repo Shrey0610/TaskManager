@@ -66,6 +66,12 @@ const TasksTable = () => {
                 const updatedTask = { ...task, taskStatus: 'Delayed', start: dayjs().format("YYYY-MM-DD HH:mm:ss") };
                 editTask(task.id, updatedTask);
             }
+
+         // IF THE STATUS IS ALREADY START DELAYED, CHECK THE END DATE, IF IT CROSSES THEN CHANGE THE STATUS TO DELAYED:
+        else if (task.taskStatus === "Start Delayed" && dayjs(task.end).isBefore(dayjs())) {
+            const updatedTask = { ...task, taskStatus: 'Delayed' };
+            editTask(task.id, updatedTask);
+        }
             setStarted(true);
     };
     
