@@ -333,6 +333,10 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
 
 
 const handleFollowUp = async (question, detectedIntent, detectedEntities) => {
+  if (!question || typeof question !== "string") {
+    return null;
+}
+
   const requiredFields = {
       "add-task": ["task_name", "assignee", "priority"],
       "update-task": ["task_id", "status"],
