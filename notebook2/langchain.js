@@ -230,23 +230,25 @@ const prompt = PromptTemplate.fromTemplate(`
       return query;
     }
   ]);
+
+  const userSession = {}; // Temporary session store for tracking conversation state
+
   
 
 // Function to detect intents
-function detectIntent(question) {
-  if (!question || typeof question !== "string") {
-    console.error("Invalid question input:", question);
-    return "general-query";
-  }
+function detectIntent(question, sessionData) {
   const qLower = question.toLowerCase();
 
+  if (sessionData && sessionData.pendingDetails) return "incomplete-action";
+
+  if (qLower.includes("add") && qLower.includes("employee")) return "add-employee";
   if (qLower.includes("how many") && qLower.includes("employee")) return "count-employees";
-  if (qLower.includes("how many") && qLower.includes("task")) return "count-tasks";
   if (qLower.includes("who") || qLower.includes("which")) return "entity-identification";
   if (qLower.includes("list") || qLower.includes("show me")) return "list-entities";
 
   return "general-query";
 }
+
 
 // Function to detect entities
 function detectEntities(question) {
@@ -287,74 +289,119 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
   Your answer:
   `);
 
-const finalChain = RunnableSequence.from([
-  {
-    question: (input) => input.question,
-    query: sqlQueryChain,
-  },
-  async (input) => {
-    const query = input.query;
+  const finalChain = RunnableSequence.from([
+    {
+      question: (input) => input.question,
+      query: sqlQueryChain,
+    },
+    async (input) => {
+      const userId = input.userId || "defaultUser";  // Identify user uniquely
+      const sessionData = userSession[userId] || {}; // Track user state
+    
+      const query = input.query;
+    
+      try {
+        if (!query || query.trim() === "") {
+          throw new Error("SQL query is empty.");
+        }
   
-    try {
-      if (!query || query.trim() === "") {
-        throw new Error("SQL query is empty.");
+        const response = await db.run(cleanSqlQuery(query));
+        const intent = detectIntent(input.question, sessionData);
+        const entities = detectEntities(input.question);
+        
+        let intentMessage = "";
+        let entityMessage = "";
+  
+        if (intent === "add-employee") {
+          const requiredDetails = ["name", "job_title", "department"];  // Define required details
+          const providedDetails = entities || [];
+  
+          const missingDetails = requiredDetails.filter(
+            (detail) => !providedDetails.includes(detail)
+          );
+  
+          if (missingDetails.length > 0) {
+            userSession[userId] = { pendingDetails: missingDetails };  // Store pending data
+            return {
+              question: input.question,
+              response: `To add a new employee, I need more details: ${missingDetails.join(", ")}. Please provide these details to proceed.`,
+              intentMessage: "📌 **Intent Detected:** Add Employee",
+              entityMessage: `🔍 **Missing Details:** ${missingDetails.join(", ")}`,
+            };
+          }
+        }
+  
+        if (intent === "incomplete-action" && sessionData.pendingDetails) {
+          const missingDetails = sessionData.pendingDetails;
+          const providedDetails = entities || [];
+          
+          const remainingDetails = missingDetails.filter(
+            (detail) => !providedDetails.includes(detail)
+          );
+  
+          if (remainingDetails.length > 0) {
+            userSession[userId].pendingDetails = remainingDetails; // Update session
+            return {
+              question: input.question,
+              response: `I still need the following details: ${remainingDetails.join(", ")}.`,
+              intentMessage: "📌 **Intent Detected:** Incomplete Action",
+              entityMessage: `🔍 **Remaining Details:** ${remainingDetails.join(", ")}`,
+            };
+          } else {
+            delete userSession[userId]; // Clear session when all details are collected
+            return {
+              question: input.question,
+              response: "All required details received. Proceeding with the action.",
+              intentMessage: "✅ All details complete",
+              entityMessage: "",
+            };
+          }
+        }
+  
+        return {
+          question: input.question,
+          query,
+          response,
+          intentMessage: intentMessage || "📌 **Intent Detected:** None",
+          entityMessage: entityMessage || "🔍 **Entities Identified:** None",
+        };
+      } catch (error) {
+        console.error("❌ SQL Execution Error:", error);
+        return {
+          question: input.question,
+          response: "I'm unable to process this request. Please check the question or try again later.",
+          intentMessage: "📌 **Intent Detection Failed**",
+          entityMessage: "🔍 **Entity Detection Failed**"
+        };
       }
+    },
+    finalResponsePrompt,
+    llm,
+    new StringOutputParser(),
+  ]);
   
-      const response = await db.run(cleanSqlQuery(query));
-      const intent = detectIntent(input.question);
-      const entities = detectEntities(input.question);
+
+  app.post("/process-sql", async (req, res) => {
+    try {
+      const userId = req.body.userId || req.headers['x-user-id'] || "defaultUser"; // Unique user identifier
+      const question = req.body.question || req.query.question || req.body.input?.text;
   
-      // Ensure intentMessage and entityMessage are always defined
-      const intentMessage = intent !== "general-query" ? `📌 **Intent Detected:** ${intent}` : "📌 **Intent Detected:** None";
-      const entityMessage = entities?.length ? `🔍 **Entities Identified:** ${entities.join(", ")}` : "🔍 **Entities Identified:** None";
+      console.log(`📝 Processing for user [${userId}]:`, question);
   
-      return {
-        question: input.question,
-        query,
-        response,
-        intentMessage: intentMessage || "", // Always present
-        entityMessage: entityMessage || "", // Always present
-      };
+      const finalResponse = await finalChain.invoke({ question, userId });
+  
+      const finalText = typeof finalResponse === "string"
+        ? finalResponse
+        : finalResponse.text || JSON.stringify(finalResponse);
+  
+      console.log("✅ Response:", finalText);
+      res.json({ output: finalText });
     } catch (error) {
-      console.error("❌ SQL Execution Error:", error);
-      return {
-        question: input.question,
-        response: "I'm unable to process this request. Please check the question or try again later.",
-        intentMessage: "📌 **Intent Detection Failed**",
-        entityMessage: "🔍 **Entity Detection Failed**"
-      };
+      console.error("❌ Error processing request:", error);
+      res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
     }
-  },
-  finalResponsePrompt,
-  llm,
-  new StringOutputParser(),
-]);
-
-app.post("/process-sql", async (req, res) => {
-  try {
-    console.log("Received request:", req.body); // Debugging
-
-    // Extract question from multiple possible locations
-    const question = req.body.question || req.query.question || req.body.input?.text;
-    console.log("📝 Processing:", question);
-
-    const finalResponse = await finalChain.invoke({ question });
-    const finalText = typeof finalResponse === "string" ? finalResponse : finalResponse.text || JSON.stringify(finalResponse);
-
-
-    console.log("✅ Response:", finalText);
-    res.json({ output:  finalText } );
-    console.log("📩 Received request:");
-    console.log("Headers:", req.headers);
-    console.log("Body:", JSON.stringify(req.body, null, 2)); // Pretty-printing for clarity
-    console.log("Query Params:", req.query);
-
-
-  } catch (error) {
-    console.error("❌ Error processing request:", error);
-    res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
-  }
-});
+  });
+  
 
 
 
