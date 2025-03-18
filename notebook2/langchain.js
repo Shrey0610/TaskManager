@@ -333,9 +333,12 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
 
 
 const handleFollowUp = async (question, detectedIntent, detectedEntities) => {
-  if (!question || typeof question !== "string") {
-    return null;
-}
+  const dataModifyingIntents = ["add-task", "update-task", "add-employee"];
+  const infoRetrievalIntents = ["fetch-tasks", "get-emails", "calculate-percentage"];
+
+  if (infoRetrievalIntents.includes(detectedIntent)) {
+      return null; // No follow-up needed for informational intents
+  }
 
   const requiredFields = {
       "add-task": ["task_name", "assignee", "priority"],
@@ -351,13 +354,13 @@ const handleFollowUp = async (question, detectedIntent, detectedEntities) => {
       return {
           question,
           response: `I need the following details to proceed: ${missingFields.join(", ")}.`,
-          intentMessage: `📌 **Intent Detected:** ${detectedIntent}`,
-          entityMessage: `🔍 **Entities Identified:** ${detectedEntities.join(", ")}`,
-          followUp: true  // Indicate that this is a follow-up request
+          intentMessage: `📌 **Intent Detected:** ${detectedIntent || "Unknown"}`,
+          entityMessage: `🔍 **Entities Identified:** ${detectedEntities.length > 0 ? detectedEntities.join(", ") : "None"}`,
+          followUp: true
       };
   }
 
-  return null; // No follow-up needed
+  return null; // All required details are present
 };
 
 const finalChain = RunnableSequence.from([
@@ -367,17 +370,15 @@ const finalChain = RunnableSequence.from([
   },
   async (input) => {
       const question = input.question;
-      const detectedIntent = detectIntent(question);
+      const detectedIntent = detectIntent(question) || "Unknown";  // Default value for undefined intent
       const detectedEntities = detectEntities(question) || [];
 
-      // ✅ Step 1: Check for missing values BEFORE invoking finalChain
       const followUpResponse = await handleFollowUp(question, detectedIntent, detectedEntities);
 
       if (followUpResponse) {
-          return followUpResponse;  // Prompt user for missing details
+          return followUpResponse; // Prompt user for missing details
       }
 
-      // ✅ Step 2: Continue only when all required details are provided
       const query = input.query;
 
       if (!query || query.trim() === "") {
@@ -385,11 +386,10 @@ const finalChain = RunnableSequence.from([
               question,
               response: "I need more details to proceed. Could you provide the missing information?",
               intentMessage: `📌 **Intent Detected:** ${detectedIntent}`,
-              entityMessage: `🔍 **Entities Identified:** ${detectedEntities.join(", ")}`,
+              entityMessage: `🔍 **Entities Identified:** ${detectedEntities.length > 0 ? detectedEntities.join(", ") : "None"}`,
           };
       }
 
-      // ✅ Step 3: Execute the query if all details are present
       try {
           const response = await db.run(cleanSqlQuery(query));
           return {
@@ -397,7 +397,7 @@ const finalChain = RunnableSequence.from([
               query,
               response: `✅ Successfully processed the request.`,
               intentMessage: `📌 **Intent Detected:** ${detectedIntent}`,
-              entityMessage: `🔍 **Entities Identified:** ${detectedEntities.join(", ")}`,
+              entityMessage: `🔍 **Entities Identified:** ${detectedEntities.length > 0 ? detectedEntities.join(", ") : "None"}`,
           };
       } catch (dbError) {
           if (dbError.code === "ER_DUP_ENTRY") {
