@@ -295,7 +295,7 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
   3. If the result is a count, give the number directly
   4. Use natural, simple language
   5. If intent or entities are detected, ask follow-up questions for any missing information
-  6. If details are missing, guide the user by requesting specifics like @assignee_name, @task_name, or @priority.
+  *6. Only If the query is to add or update the details in any table and there are missing values, strictly request for them specifics like @assignee_name, @task_name, or @priority or anything ftom the query. If the user provides them only then convert it to the {response}*
 
   Question: {question}
   SQL Result: {response}
