@@ -332,74 +332,55 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
 
 
 
-const finalChain = RunnableSequence.from([
-  {
-    question: (input) => input.question,
-    query: sqlQueryChain,
-  },
-  async (input) => {
-    const query = input.query;
-
-    try {
-      if (!query || query.trim() === "") {
-        throw new Error("SQL query is empty.");
-      }
-
-      const intent = detectIntent(input.question);
-      const entities = detectEntities(input.question) || [];
-
-      // ✅ NEW: Identify missing values based on query type
-      const requiredFields = [];
-      if (intent === "add-task") {
-        requiredFields.push("task_name", "assignee", "priority");
-      } else if (intent === "update-task") {
-        requiredFields.push("task_id", "status");
-      }
-
-      const missingFields = requiredFields.filter(field => !entities.includes(field));
-
-      // ✅ NEW: Prompt for missing values before attempting the query
-      if (missingFields.length > 0) {
+  const finalChain = RunnableSequence.from([
+    {
+      question: (input) => input.question,
+      query: sqlQueryChain,
+    },
+    async (input) => {
+      const query = input.query;
+  
+      try {
+        if (!query || query.trim() === "") {
+          throw new Error("SQL query is empty.");
+        }
+  
+        const response = await db.run(cleanSqlQuery(query));
+        const intent = detectIntent(input.question);
+        const entities = detectEntities(input.question);
+  
+        const intentMessage = intent !== "general-query"
+          ? `📌 **Intent Detected:** ${intent}`
+          : "📌 **Intent Detected:** None";
+  
+        const entityMessage = entities?.length
+          ? `🔍 **Entities Identified:** ${entities.join(", ")}`
+          : "🔍 **Entities Identified:** None";
+  
+        const followUp = generateFollowUp(input.question, entities) || "";
+  
         return {
           question: input.question,
-          response: `I need the following details to proceed: ${missingFields.join(", ")}.`,
-          intentMessage: `📌 **Intent Detected:** ${intent}`,
-          entityMessage: `🔍 **Entities Identified:** ${entities.join(", ")}`,
+          query,
+          response: followUp || response,
+          intentMessage,
+          entityMessage,
+        };
+      } catch (error) {
+        console.error("❌ SQL Execution Error:", error);
+        return {
+          question: input.question,
+          response: "I'm unable to process this request. Please check the question or try again later.",
+          intentMessage: "📌 **Intent Detection Failed**",
+          entityMessage: "🔍 **Entity Detection Failed**"
         };
       }
-
-      const response = await db.run(cleanSqlQuery(query));
-
-      const intentMessage = intent !== "general-query"
-        ? `📌 **Intent Detected:** ${intent}`
-        : "📌 **Intent Detected:** None";
-
-      const entityMessage = entities?.length
-        ? `🔍 **Entities Identified:** ${entities.join(", ")}`
-        : "🔍 **Entities Identified:** None";
-
-      return {
-        question: input.question,
-        query,
-        response: response,
-        intentMessage,
-        entityMessage,
-      };
-    } catch (error) {
-      console.error("❌ SQL Execution Error:", error);
-      return {
-        question: input.question,
-        response: "I'm unable to process this request. Please check the question or try again later.",
-        intentMessage: "📌 **Intent Detection Failed**",
-        entityMessage: "🔍 **Entity Detection Failed**"
-      };
-    }
-  },
-  finalResponsePrompt,
-  llm,
-  new StringOutputParser(),
-]);
-
+    },
+    finalResponsePrompt,
+    llm,
+    new StringOutputParser(),
+  ]);
+  
 
 app.post("/process-sql", async (req, res) => {
   try {
