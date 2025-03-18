@@ -266,181 +266,69 @@ function detectEntities(question) {
   return entities.length > 0 ? entities : null;
 }
 
-// const finalResponsePrompt = PromptTemplate.fromTemplate(`
-//   You are a helpful database assistant. Provide a clear, accurate answer based ONLY on these SQL results.
-  
-//   GUIDELINES:
-//   1. Answer the question directly and briefly
-//   2. DO NOT mention SQL or queries
-//   3. If the result is a count, give the number directly
-//   4. Use natural, simple language
-//   5. If intent or entities are detected, instruct the user, otherwise ignore them.
-//   6. If there is any missing information in the {question} and the {response} then return it as the answer.
-
-//   Question: {question}
-//   SQL Result: {response}
-
-//   {intentMessage}
-//   {entityMessage}
-
-//   Your answer:
-//   `);
-
 const finalResponsePrompt = PromptTemplate.fromTemplate(`
   You are a helpful database assistant. Provide a clear, accurate answer based ONLY on these SQL results.
-
+  
   GUIDELINES:
   1. Answer the question directly and briefly
   2. DO NOT mention SQL or queries
   3. If the result is a count, give the number directly
   4. Use natural, simple language
-  5. If intent or entities are detected, ask follow-up questions for any missing information
-  6. Only If the query is to add or update the details in any table and there are missing values, strictly request for them specifics like @assignee_name, @task_name, or @priority or anything from the query. If the user provides them only then convert it to the {response}
+  5. If intent or entities are detected, instruct the user, otherwise ignore them.
+  *6. Only If the query is to add or update the details in the table and there are missing values, guide the user by requesting specifics like @assignee_name, @task_name, or @priority or anything which is required.*
+  
 
-  Question: \${question}
-  SQL Result: \${response}
+  Question: {question}
+  SQL Result: {response}
 
-  \${intentMessage}
-  \${entityMessage}
+  {intentMessage}
+  {entityMessage}
 
   Your answer:
-`);
-
-
- function generateFollowUp(question, entities) {
-    if (!question || typeof question !== "string") {
-        return null;
-    }
-
-    const qLower = question.toLowerCase();
-
-    // Ensure `entities` is treated as an array (handles null/undefined cases)
-    const validEntities = Array.isArray(entities) ? entities : [];
-
-    if (qLower.includes("assignee") && !validEntities.includes("taskAssignee")) {
-        return "Can you provide the assignee's name or contact details?";
-    }
-
-    if (
-        qLower.includes("task") &&
-        !validEntities.some(e => ["task_name", "priority", "taskStatus"].includes(e))
-    ) {
-        return "Could you specify the task name, priority, or status?";
-    }
-
-    return null;
-}
-
-
-
-const handleFollowUp = async (question, detectedIntent, detectedEntities = {}) => {
-  if (!question || typeof question !== "string") {
-      return null;
-  }
-
-  const dataRequiredIntents = ["update_task", "add_task", "delete_task"]; // Example
-  const infoRetrievalIntents = ["fetch-tasks", "get-emails", "calculate-percentage"];
-  const isDataRequired = dataRequiredIntents.includes(detectedIntent);
-  if (infoRetrievalIntents.includes(detectedIntent)) {
-      return null; // No follow-up needed for informational intents
-  }
-
-  const requiredFields = {
-      "add-task": ["task_name", "assignee", "priority"],
-      "update-task": ["task_id", "status"],
-      "add-employee": ["name", "email", "phoneNum", "dob"],
-  };
-
-  const detectedEntityValues = Array.isArray(detectedEntities) 
-      ? detectedEntities 
-      : Object.values(detectedEntities);
-
-
-const missingFields = isDataRequired
-? requiredFields[detectedIntent].filter(
-(field) => !detectedEntities.includes(field)
-)
-: [];
-
-  if (missingFields.length > 0) {
-      return {
-          question,
-          response: `I need the following details to proceed: ${missingFields.join(", ")}.`,
-          intentMessage: `📌 **Intent Detected:** ${detectedIntent || "Unknown"}`,
-          entityMessage: `🔍 **Entities Identified:** ${detectedEntityValues.length > 0 
-              ? detectedEntityValues.join(", ") 
-              : "None"}`,
-          followUp: true
-      };
-  }
-
-  return null; // All required details are present
-};
-
+  `);
 
 const finalChain = RunnableSequence.from([
   {
-      question: (input) => input.question,
-      query: sqlQueryChain,
+    question: (input) => input.question,
+    query: sqlQueryChain,
   },
   async (input) => {
-      const question = input.question;
-      const detectedIntent = detectIntent(question) || "Unknown";  // Default value for undefined intent
-      const detectedEntities = detectEntities(question) || [];
-
-      const followUpResponse = await handleFollowUp(question, detectedIntent, detectedEntities);
-
-      if (followUpResponse) {
-          return followUpResponse; // Prompt user for missing details
-      }
-
-      const query = input.query;
-
+    const query = input.query;
+  
+    try {
       if (!query || query.trim() === "") {
-          return {
-              question,
-              response: "I need more details to proceed. Could you provide the missing information?",
-              intentMessage: `📌 **Intent Detected:** ${detectedIntent}`,
-              entityMessage: `🔍 **Entities Identified:** ${detectedEntities.length > 0 ? detectedEntities.join(", ") : "None"}`,
-          };
+        throw new Error("SQL query is empty.");
       }
-
-      try {
-          const response = await db.run(cleanSqlQuery(query));
-          return {
-              question,
-              query,
-              response: `✅ Successfully processed the request.`,
-              intentMessage: `📌 **Intent Detected:** ${detectedIntent}`,
-              entityMessage: `🔍 **Entities Identified:** ${detectedEntities.length > 0 ? detectedEntities.join(", ") : "None"}`,
-          };
-      } catch (dbError) {
-          if (dbError.code === "ER_DUP_ENTRY") {
-              return {
-                  question,
-                  response: `⚠️ An entry with these details already exists. Please try again with unique information.`,
-              };
-          }
-
-          return {
-              question,
-              response: "❌ An error occurred. Please try again.",
-              intentMessage: `📌 **Intent Detected:** ${detectedIntent || "Unknown"}`,
-          };
-      }
+  
+      const response = await db.run(cleanSqlQuery(query));
+      const intent = detectIntent(input.question);
+      const entities = detectEntities(input.question);
+  
+      // Ensure intentMessage and entityMessage are always defined
+      const intentMessage = intent !== "general-query" ? `📌 **Intent Detected:** ${intent}` : "📌 **Intent Detected:** None";
+      const entityMessage = entities?.length ? `🔍 **Entities Identified:** ${entities.join(", ")}` : "🔍 **Entities Identified:** None";
+  
+      return {
+        question: input.question,
+        query,
+        response,
+        intentMessage: intentMessage || "", // Always present
+        entityMessage: entityMessage || "", // Always present
+      };
+    } catch (error) {
+      console.error("❌ SQL Execution Error:", error);
+      return {
+        question: input.question,
+        response: "I'm unable to process this request. Please check the question or try again later.",
+        intentMessage: "📌 **Intent Detection Failed**",
+        entityMessage: "🔍 **Entity Detection Failed**"
+      };
+    }
   },
-  async (input) => ({
-      ...input,
-      intentMessage: input.intentMessage || "📌 **Intent Detected:** Unknown",
-  }),
   finalResponsePrompt,
   llm,
   new StringOutputParser(),
 ]);
-
-
-
-  
 
 app.post("/process-sql", async (req, res) => {
   try {
