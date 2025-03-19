@@ -241,7 +241,8 @@ function detectIntent(question, sessionData) {
 
   if (sessionData && sessionData.pendingDetails) return "incomplete-action";
 
-  if (qLower.includes("add") && qLower.includes("employee")) return "add-employee";
+  if (qLower.includes("add") && qLower.includes("employee" || "assignee")) return "add-employee";
+  if (qLower.includes("add" || "assign") && qLower.includes("task")) return "add-task";
   if (qLower.includes("how many") && qLower.includes("employee")) return "count-employees";
   if (qLower.includes("who") || qLower.includes("which")) return "entity-identification";
   if (qLower.includes("list") || qLower.includes("show me")) return "list-entities";
@@ -327,6 +328,25 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
               question: input.question,
               response: `To add a new employee, I need more details: ${missingDetails.join(", ")}. Please provide these details to proceed.`,
               intentMessage: "📌 **Intent Detected:** Add Employee",
+              entityMessage: `🔍 **Missing Details:** ${missingDetails.join(", ")}`,
+            };
+          }
+        }
+
+        if (intent === "add-task") {
+          const requiredDetails = ["task_name", "priority", "taskAssignee", "taskStatus"];  // Define required details
+          const providedDetails = entities || [];
+  
+          const missingDetails = requiredDetails.filter(
+            (detail) => !providedDetails.includes(detail)
+          );
+  
+          if (missingDetails.length > 0) {
+            userSession[userId] = { pendingDetails: missingDetails };  // Store pending data
+            return {
+              question: input.question,
+              response: `To add a new task, I need more details: ${missingDetails.join(", ")}. Please provide these details to proceed.`,
+              intentMessage: "📌 **Intent Detected:** Add Task",
               entityMessage: `🔍 **Missing Details:** ${missingDetails.join(", ")}`,
             };
           }
