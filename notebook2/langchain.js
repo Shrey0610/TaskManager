@@ -203,6 +203,8 @@ const prompt = PromptTemplate.fromTemplate(`
   3. Match the query structure to the question's intent (counting, listing, filtering)
   4. Use JOINs when needed to combine multiple tables
   5. Do NOT explain—return only the SQL query
+  6. If the question is to add a task or a new assignee, then check the last ID and write the query accordingly.
+  6. Wait for the next question if there is anything missing in the current question before providing the SQL query.
 
   User question: {question}
   
@@ -278,8 +280,8 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
   3. If the result is a count, give the number directly
   4. Use natural, simple language
   5. If intent or entities are detected, instruct the user, otherwise ignore them.
-  *6. Only If the query is to add or update the details in the table and there are missing values, guide the user by requesting specifics like @assignee_name, @task_name, or @priority or anything which is required.*
-  7. If you feel like the question is incomplete, ask the user for only those details.
+  *6. Only If the query is to add the details in the table and there are missing values, guide the user by requesting specifics like @assignee_name or @task_name, or @priority or anything which is required.*
+  7. If you feel like the question is incomplete while updating the details, only then ask the user for those details. For ex. If there are conflicting names in the table, ask the user to provide the ID of the task or assignee.
   
 
   Question: {question}
