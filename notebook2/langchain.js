@@ -278,6 +278,7 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
   4. Use natural, simple language
   5. If intent or entities are detected, instruct the user, otherwise ignore them.
   *6. Only If the query is to add or update the details in the table and there are missing values, guide the user by requesting specifics like @assignee_name, @task_name, or @priority or anything which is required.*
+  7. If you feel like the question is incomplete, ask the user for only those details.
   
 
   Question: {question}
