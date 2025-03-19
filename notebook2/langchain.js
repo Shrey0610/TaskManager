@@ -282,6 +282,7 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
   5. If intent or entities are detected, instruct the user, otherwise ignore them.
   *6. Only If the query is to add the details in the table and there are missing values, guide the user by requesting specifics like @assignee_name or @task_name, or @priority or anything which is required.*
   7. If you feel like the question is incomplete while updating the details, only then ask the user for those details. For ex. If there are conflicting names in the table, ask the user to provide the ID of the task or assignee.
+  8. If there is anything NULL in the SQL query, ask for it before providing the answer.
   
 
   Question: {question}
