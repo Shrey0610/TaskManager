@@ -205,6 +205,7 @@ const prompt = PromptTemplate.fromTemplate(`
   5. Do NOT explain—return only the SQL query
   6. If the question is to add a task or a new assignee, then check the last ID and write the query accordingly.
   7. Wait for the next question if there is anything missing in the current question before providing the SQL query.
+  8. Auto-increment the ID for new entries in the table.
 
   User question: {question}
   
