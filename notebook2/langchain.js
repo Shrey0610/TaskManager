@@ -203,10 +203,13 @@ const prompt = PromptTemplate.fromTemplate(`
   3. Match the query structure to the question's intent (counting, listing, filtering)
   4. Use JOINs when needed to combine multiple tables
   5. Do NOT explain—return only the SQL query
-  6. If the question is to add a task or a new assignee, then check the last ID and write the query accordingly.
-  7. Wait for the next question if there is anything missing in the current question before providing the SQL query.
+  6. If the {question} is to add a task or a new assignee, then check the last ID and write the query accordingly.
+  7. Wait for the next question if there is anything missing in the current {question} before providing the SQL query.
   8. Auto-increment the ID for new entries in the table.
   9. If the phone number is missing assume it to be: 487487847.
+  10. If the dob is missing assume it to be: 1990-01-01.
+  11. If everything is missing in the {question}, wait for the next question before generating the query.
+
   User question: {question}
   
   SQL Query:
@@ -231,7 +234,7 @@ const prompt = PromptTemplate.fromTemplate(`
       if (query.startsWith("INSERT INTO assignees") && query.includes("VALUES (")) {
         query = query.replace(
           /VALUES \(\s*\d+\s*,/,
-          "VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM assignees),"
+          "VALUES ((SELECT COALESCE(MAX(id), 0) + 1),"
         );
       }
       if (!query || query.trim() === "") {
