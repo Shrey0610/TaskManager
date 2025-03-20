@@ -205,16 +205,10 @@ const prompt = PromptTemplate.fromTemplate(`
   5. Do NOT explain—return only the SQL query
   6. If the question is to add a task or a new assignee, then check the last ID and write the query accordingly.
   7. Wait for the next question if there is anything missing in the current question before providing the SQL query.
-  8. if (query.startsWith("INSERT INTO assignees") && query.includes("VALUES (")) {
-        query = query.replace(
-          /VALUES \(\s*\d+\s*,/,
-          "VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM assignees),"
-        );
-      }
-
+  8. If the query is to insert a new employee or a new task, replace the 'VALUES' part to this: "VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM assignees or tasks),". So that the id is auto-incremented.
+  9. If the phone number is missing then wait and ask for it, don't provide the query.
   User question: {question}.
 
-  9. If the phone number is missing then wait and ask for it, don't provide the query.
   
   SQL Query:
   `);
