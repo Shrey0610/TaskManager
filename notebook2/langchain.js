@@ -206,7 +206,7 @@ const prompt = PromptTemplate.fromTemplate(`
   6. If the question is to add a task or a new assignee, then check the last ID and write the query accordingly.
   7. Wait for the next question if there is anything missing in the current question before providing the SQL query.
   8. Auto-increment the ID for new entries in the table.
-
+  9. If the phone number is missing assume it to be: 487487847.
   User question: {question}
   
   SQL Query:
@@ -303,139 +303,138 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
   Your answer:
   `);
 
- // Define required fields for each intent
-const requiredFields = {
-  "add-employee": ["name", "email", "phoneNum", "dob"],
-  "add-task": ["task_name", "priority", "taskAssignee", "taskStatus", "start", "end"],
-};
-
-// A helper function to check for missing fields
-function getMissingFields(question, intent) {
-  // For simplicity, here we assume that if a required field’s keyword is not found in the question text, it’s missing.
-  // (In production, you might have a more robust entity extraction.)
-  const qLower = question.toLowerCase();
-  const required = requiredFields[intent] || [];
-  return required.filter(field => !qLower.includes(field));
-}
-
-// Remove id field from an INSERT query if present (for add-employee or add-task)
-function removeIdFromInsert(query, tableName) {
-  // For example, remove "id, " from the column list and the corresponding value (assumed to be a number) from the VALUES list.
-  // This regex assumes the query is of the form: INSERT INTO tableName (id, col1, col2, ...) VALUES (4, val1, val2, ...);
-  const pattern = new RegExp(`\\(\\s*id\\s*,\\s*`, 'i');
-  if (query.startsWith(`INSERT INTO ${tableName}`) && pattern.test(query)) {
-    query = query.replace(pattern, '(');
-    // Also remove the first value from the VALUES list:
-    query = query.replace(/\( ?\d+ ?,(.*)\)/, '($1)');
-  }
-  return query;
-}
-
-const finalChain = RunnableSequence.from([
-  {
-    question: (input) => input.question,
-    query: sqlQueryChain,
-  },
-  async (input) => {
-    const userId = input.userId || "defaultUser";
-    const question = input.question;
-    let query = input.query;
+  const finalChain = RunnableSequence.from([
+    {
+      question: (input) => input.question,
+      query: sqlQueryChain,
+    },
+    async (input) => {
+      const userId = input.userId || "defaultUser";  // Identify user uniquely
+      const sessionData = userSession[userId] || {}; // Track user state
     
-    // Determine the intent
-    const intent = detectIntent(question);
-    const entities = detectEntities(question) || [];
+      const query = input.query;
     
-    // Check if this is an "add" intent that requires extra details
-    if (intent === "add-employee" || intent === "add-task") {
-      const missingFields = getMissingFields(question, intent);
-      if (missingFields.length > 0) {
-        // Return a follow-up prompt rather than executing the SQL.
+      try {
+        if (!query || query.trim() === "") {
+          throw new Error("SQL query is empty.");
+        }
+  
+        const response = await db.run(cleanSqlQuery(query));
+        const intent = detectIntent(input.question, sessionData);
+        const entities = detectEntities(input.question);
+        
+        let intentMessage = "";
+        let entityMessage = "";
+  
+        if (intent === "add-employee") {
+          const requiredDetails = ["name", "email", "phoneNum", "dob"];  // Define required details
+          const providedDetails = entities || [];
+  
+          const missingDetails = requiredDetails.filter(
+            (detail) => !providedDetails.includes(detail)
+          );
+  
+          if (missingDetails.length > 0) {
+            userSession[userId] = { pendingDetails: missingDetails };  // Store pending data
+            return {
+              question: input.question,
+              response: `To add a new employee, I need more details: ${missingDetails.join(", ")}. Please provide these details to proceed.`,
+              intentMessage: "📌 **Intent Detected:** Add Employee",
+              entityMessage: `🔍 **Missing Details:** ${missingDetails.join(", ")}`,
+            };
+          }
+        }
+
+        if (intent === "add-task") {
+          const requiredDetails = ["task_name", "priority", "taskAssignee", "taskStatus", "start", "end"];  // Define required details
+          const providedDetails = entities || [];
+  
+          const missingDetails = requiredDetails.filter(
+            (detail) => !providedDetails.includes(detail)
+          );
+  
+          if (missingDetails.length > 0) {
+            userSession[userId] = { pendingDetails: missingDetails };  // Store pending data
+            return {
+              question: input.question,
+              response: `To add a new task, I need more details: ${missingDetails.join(", ")}. Please provide these details to proceed.`,
+              intentMessage: "📌 **Intent Detected:** Add Task",
+              entityMessage: `🔍 **Missing Details:** ${missingDetails.join(", ")}`,
+            };
+          }
+        }
+  
+        if (intent === "incomplete-action" && sessionData.pendingDetails) {
+          const missingDetails = sessionData.pendingDetails;
+          const providedDetails = entities || [];
+          
+          const remainingDetails = missingDetails.filter(
+            (detail) => !providedDetails.includes(detail)
+          );
+  
+          if (remainingDetails.length > 0) {
+            userSession[userId].pendingDetails = remainingDetails; // Update session
+            return {
+              question: input.question,
+              response: `I still need the following details: ${remainingDetails.join(", ")}.`,
+              intentMessage: "📌 **Intent Detected:** Incomplete Action",
+              entityMessage: `🔍 **Remaining Details:** ${remainingDetails.join(", ")}`,
+            };
+          } else {
+            delete userSession[userId]; // Clear session when all details are collected
+            return {
+              question: input.question,
+              response: "All required details received. Proceeding with the action.",
+              intentMessage: "✅ All details complete",
+              entityMessage: "",
+            };
+          }
+        }
+  
         return {
-          question,
-          response: `I need the following details to proceed: ${missingFields.map(f => "@" + f).join(", ")}.`,
-          intentMessage: `📌 **Intent Detected:** ${intent}`,
-          entityMessage: `🔍 **Entities Identified:** ${entities.length > 0 ? entities.join(", ") : "None"}`,
-          followUp: true,
+          question: input.question,
+          query,
+          response,
+          intentMessage: intentMessage || "📌 **Intent Detected:** None",
+          entityMessage: entityMessage || "🔍 **Entities Identified:** None",
+        };
+      } catch (error) {
+        console.error("❌ SQL Execution Error:", error);
+        return {
+          question: input.question,
+          response: "I'm unable to process this request. Please check the question or try again later.",
+          intentMessage: "📌 **Intent Detection Failed**",
+          entityMessage: "🔍 **Entity Detection Failed**"
         };
       }
-      // For add intents, remove the fixed id field from the generated query.
-      if (intent === "add-employee") {
-        query = removeIdFromInsert(query, "assignees");
-      }
-      if (intent === "add-task") {
-        query = removeIdFromInsert(query, "tasks");
-      }
-    }
-    
-    // If we reached here, assume all required details are present.
-    if (!query || query.trim() === "") {
-      throw new Error("SQL query is empty.");
-    }
-    
-    // Execute the query (for example, an INSERT or UPDATE)
-    let response;
+    },
+    finalResponsePrompt,
+    llm,
+    new StringOutputParser(),
+  ]);
+  
+
+  app.post("/process-sql", async (req, res) => {
     try {
-      response = await db.run(cleanSqlQuery(query));
-    } catch (dbError) {
-      console.error("❌ SQL Execution Error:", dbError);
-      // Handle duplicate entry or missing values errors specifically
-      if (dbError.code === "ER_DUP_ENTRY") {
-        return {
-          question,
-          response: `⚠️ An entry with these details already exists. Please try again with unique information.`,
-          intentMessage: `📌 **Intent Detected:** ${intent}`,
-          entityMessage: `🔍 **Entities Identified:** ${entities.length > 0 ? entities.join(", ") : "None"}`,
-        };
-      }
-      if (dbError.code === "ER_BAD_NULL_ERROR") {
-        return {
-          question,
-          response: `⚠️ Some required fields are missing. Please ensure that none of the required fields (e.g. ${intent === "add-employee" ? "name, email, phoneNum, dob" : "task_name, priority, taskAssignee, taskStatus, start, end"}) are null.`,
-          intentMessage: `📌 **Intent Detected:** ${intent}`,
-          entityMessage: `🔍 **Entities Identified:** ${entities.length > 0 ? entities.join(", ") : "None"}`,
-        };
-      }
-      return {
-        question,
-        response: "I'm unable to process this request. Please check the question or try again later.",
-        intentMessage: `📌 **Intent Detection Failed**`,
-        entityMessage: `🔍 **Entity Detection Failed**`
-      };
+      const userId = req.body.userId || req.headers['x-user-id'] || "defaultUser"; // Unique user identifier
+      const question = req.body.question || req.query.question || req.body.input?.text;
+  
+      console.log(`📝 Processing for user [${userId}]:`, question);
+  
+      const finalResponse = await finalChain.invoke({ question, userId });
+  
+      const finalText = typeof finalResponse === "string"
+        ? finalResponse
+        : finalResponse.text || JSON.stringify(finalResponse);
+  
+      console.log("✅ Response:", finalText);
+      res.json({ output: finalText });
+    } catch (error) {
+      console.error("❌ Error processing request:", error);
+      res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
     }
-    
-    return {
-      question,
-      query,
-      response,
-      intentMessage: `📌 **Intent Detected:** ${intent}`,
-      entityMessage: `🔍 **Entities Identified:** ${entities.length > 0 ? entities.join(", ") : "None"}`,
-    };
-  },
-  finalResponsePrompt,
-  llm,
-  new StringOutputParser(),
-]);
-
-app.post("/process-sql", async (req, res) => {
-  try {
-    console.log("Received request:", req.body);
-
-    // Extract question from possible locations
-    const question = req.body.question || req.query.question || req.body.input?.text;
-    console.log("📝 Processing:", question);
-
-    const finalResponse = await finalChain.invoke({ question });
-    const finalText = typeof finalResponse === "string"
-      ? finalResponse
-      : finalResponse.text || JSON.stringify(finalResponse);
-
-    console.log("✅ Response:", finalText);
-    res.json({ output: finalText });
-  } catch (error) {
-    console.error("❌ Error processing request:", error);
-    res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
-  }
-});  
+  });
+  
 
 
 
