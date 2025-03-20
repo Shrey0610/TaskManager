@@ -203,73 +203,95 @@ const prompt = PromptTemplate.fromTemplate(`
   3. Match the query structure to the question's intent (counting, listing, filtering)
   4. Use JOINs when needed to combine multiple tables
   5. Do NOT explain—return only the SQL query
-  6. If the question is to add a task or a new employee, then check for the last ID and write the query accordingly.
-  7. If any required details are missing, wait for the next message before providing the SQL query.
+  6. If the question is to add a task or a new assignee, then check the last ID and write the query accordingly.
+  7. Wait for the next question if there is anything missing in the current question before providing the SQL query.
 
   User question: {question}
   
   SQL Query:
-`);
+  `);
 
-const sqlQueryChain = RunnableSequence.from([
-  {
-    schema: async () => {
-      const schemaInfo = await db.getTableInfo();
-      if (!schemaInfo || Object.keys(schemaInfo).length === 0) {
-        throw new Error("Database schema is empty or undefined.");
-      }
-      return schemaInfo;
+  const sqlQueryChain = RunnableSequence.from([
+    {
+      schema: async () => {
+        const schemaInfo = await db.getTableInfo();
+        if (!schemaInfo || Object.keys(schemaInfo).length === 0) {
+          throw new Error("Database schema is empty or undefined.");
+        }
+        return schemaInfo;
+      },
+      question: (input) => input.question,
     },
-    question: (input) => input.question,
-  },
-  prompt,
-  llm.bind({ stop: ["\nSQLResult:"] }),
-  new StringOutputParser(),
-  async (query) => {
-    if (!query || query.trim() === "") {
-      throw new Error("Generated SQL query is empty.");
+    prompt,
+    llm.bind({ stop: ["\nSQLResult:"] }),
+    new StringOutputParser(),
+    async (query) => {
+      // If the query is an INSERT and contains a fixed id value, replace it with a dynamic id subquery.
+      if (query.startsWith("INSERT INTO assignees") && query.includes("VALUES (")) {
+        query = query.replace(
+          /VALUES \(\s*\d+\s*,/,
+          "VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM assignees),"
+        );
+      }
+      if (!query || query.trim() === "") {
+        throw new Error("Generated SQL query is empty.");
+      }
+      return query;
     }
-    return query;
-  }
-]);
+    
+  ]);
 
-// Function to detect intents (simple version)
-function detectIntent(question) {
+  const userSession = {}; // Temporary session store for tracking conversation state
+
+  
+
+// Function to detect intents
+function detectIntent(question, sessionData) {
   const qLower = question.toLowerCase();
-  if (qLower.includes("add") && qLower.includes("employee")) return "add-employee";
-  if ((qLower.includes("add") || qLower.includes("assign")) && qLower.includes("task")) return "add-task";
+
+  if (sessionData && sessionData.pendingDetails) return "incomplete-action";
+
+  if (qLower.includes("add") && qLower.includes("employee" || "assignee")) return "add-employee";
+  if (qLower.includes("add" || "assign") && qLower.includes("task")) return "add-task";
   if (qLower.includes("how many") && qLower.includes("employee")) return "count-employees";
-  if (qLower.includes("how many") && qLower.includes("task")) return "count-tasks";
   if (qLower.includes("who") || qLower.includes("which")) return "entity-identification";
   if (qLower.includes("list") || qLower.includes("show me")) return "list-entities";
+
   return "general-query";
 }
 
-// Function to detect entities (very basic matching)
+
+// Function to detect entities
 function detectEntities(question) {
   const entities = [];
+  if (!question || typeof question !== "string") {
+    console.error("Invalid question input:", question);
+    return entities.length > 0 ? entities : null;
+  }
   const qLower = question.toLowerCase();
+
   if (qLower.includes("email")) entities.push("email");
   if (qLower.includes("priority")) entities.push("priority");
   if (qLower.includes("assignee")) entities.push("taskAssignee");
   if (qLower.includes("task name")) entities.push("task_name");
   if (qLower.includes("status")) entities.push("taskStatus");
-  if (qLower.includes("dob") || qLower.includes("date of birth")) entities.push("dob");
-  if (qLower.includes("phone")) entities.push("phoneNum");
-  return entities;
+
+  return entities.length > 0 ? entities : null;
 }
 
-// Final response prompt – ensure all variables have defaults
 const finalResponsePrompt = PromptTemplate.fromTemplate(`
   You are a helpful database assistant. Provide a clear, accurate answer based ONLY on these SQL results.
-
+  
   GUIDELINES:
-  1. Answer the question directly and briefly.
-  2. DO NOT mention SQL or queries.
-  3. If the result is a count, give the number directly.
-  4. Use natural, simple language.
-  5. If required details are missing (for data-modifying actions), ask the user for those specifics.
-  6. If there is any missing data (NULL values) in the SQL result, ask for that information before proceeding.
+  1. Answer the question directly and briefly
+  2. DO NOT mention SQL or queries
+  3. If the result is a count, give the number directly
+  4. Use natural, simple language
+  5. If intent or entities are detected, instruct the user, otherwise ignore them.
+  *6. Only If the query is to add the details in the table and there are missing values, guide the user by requesting specifics like @assignee_name or @task_name, or @priority or anything which is required.*
+  7. If you feel like the question is incomplete while updating the details, only then ask the user for those details. For ex. If there are conflicting names in the table, ask the user to provide the ID of the task or assignee.
+  8. If there is anything NULL in the SQL query, ask for it before providing the answer.
+  
 
   Question: {question}
   SQL Result: {response}
@@ -278,95 +300,144 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
   {entityMessage}
 
   Your answer:
-`);
+  `);
 
-const finalChain = RunnableSequence.from([
-  {
-    question: (input) => input.question,
-    query: sqlQueryChain,
-  },
-  async (input) => {
-    const question = input.question;
-    const intent = detectIntent(question);
-    const entities = detectEntities(question);
+  const finalChain = RunnableSequence.from([
+    {
+      question: (input) => input.question,
+      query: sqlQueryChain,
+    },
+    async (input) => {
+      const userId = input.userId || "defaultUser";  // Identify user uniquely
+      const sessionData = userSession[userId] || {}; // Track user state
     
-    // Define required details for data-modifying intents:
-    const requiredDetailsMap = {
-      "add-employee": ["name", "email", "phoneNum", "dob"],
-      "add-task": ["task_name", "priority", "taskAssignee", "taskStatus"]
-    };
+      const query = input.query;
+    
+      try {
+        if (!query || query.trim() === "") {
+          throw new Error("SQL query is empty.");
+        }
+  
+        const response = await db.run(cleanSqlQuery(query));
+        const intent = detectIntent(input.question, sessionData);
+        const entities = detectEntities(input.question);
+        
+        let intentMessage = "";
+        let entityMessage = "";
+  
+        if (intent === "add-employee") {
+          const requiredDetails = ["name", "email", "phoneNum", "dob"];  // Define required details
+          const providedDetails = entities || [];
+  
+          const missingDetails = requiredDetails.filter(
+            (detail) => !providedDetails.includes(detail)
+          );
+  
+          if (missingDetails.length > 0) {
+            userSession[userId] = { pendingDetails: missingDetails };  // Store pending data
+            return {
+              question: input.question,
+              response: `To add a new employee, I need more details: ${missingDetails.join(", ")}. Please provide these details to proceed.`,
+              intentMessage: "📌 **Intent Detected:** Add Employee",
+              entityMessage: `🔍 **Missing Details:** ${missingDetails.join(", ")}`,
+            };
+          }
+        }
 
-    // Only for add/update intents, check if required details are present.
-    if (intent === "add-employee" || intent === "add-task") {
-      const requiredDetails = requiredDetailsMap[intent];
-      // Here we assume that if an entity appears in the question text, it's provided.
-      const missingDetails = requiredDetails.filter(detail => !entities.includes(detail));
-      if (missingDetails.length > 0) {
-        // Return a follow-up message instead of executing the SQL query
+        if (intent === "add-task") {
+          const requiredDetails = ["task_name", "priority", "taskAssignee", "taskStatus", "start", "end"];  // Define required details
+          const providedDetails = entities || [];
+  
+          const missingDetails = requiredDetails.filter(
+            (detail) => !providedDetails.includes(detail)
+          );
+  
+          if (missingDetails.length > 0) {
+            userSession[userId] = { pendingDetails: missingDetails };  // Store pending data
+            return {
+              question: input.question,
+              response: `To add a new task, I need more details: ${missingDetails.join(", ")}. Please provide these details to proceed.`,
+              intentMessage: "📌 **Intent Detected:** Add Task",
+              entityMessage: `🔍 **Missing Details:** ${missingDetails.join(", ")}`,
+            };
+          }
+        }
+  
+        if (intent === "incomplete-action" && sessionData.pendingDetails) {
+          const missingDetails = sessionData.pendingDetails;
+          const providedDetails = entities || [];
+          
+          const remainingDetails = missingDetails.filter(
+            (detail) => !providedDetails.includes(detail)
+          );
+  
+          if (remainingDetails.length > 0) {
+            userSession[userId].pendingDetails = remainingDetails; // Update session
+            return {
+              question: input.question,
+              response: `I still need the following details: ${remainingDetails.join(", ")}.`,
+              intentMessage: "📌 **Intent Detected:** Incomplete Action",
+              entityMessage: `🔍 **Remaining Details:** ${remainingDetails.join(", ")}`,
+            };
+          } else {
+            delete userSession[userId]; // Clear session when all details are collected
+            return {
+              question: input.question,
+              response: "All required details received. Proceeding with the action.",
+              intentMessage: "✅ All details complete",
+              entityMessage: "",
+            };
+          }
+        }
+  
         return {
-          question,
-          response: `I need additional details: ${missingDetails.map(d => "@" + d).join(", ")}. Could you provide these details?`,
-          intentMessage: `📌 **Intent Detected:** ${intent}`,
-          entityMessage: `🔍 **Entities Identified:** ${entities.length > 0 ? entities.join(", ") : "None"}`,
+          question: input.question,
+          query,
+          response,
+          intentMessage: intentMessage || "📌 **Intent Detected:** None",
+          entityMessage: entityMessage || "🔍 **Entities Identified:** None",
+        };
+      } catch (error) {
+        console.error("❌ SQL Execution Error:", error);
+        return {
+          question: input.question,
+          response: "I'm unable to process this request. Please check the question or try again later.",
+          intentMessage: "📌 **Intent Detection Failed**",
+          entityMessage: "🔍 **Entity Detection Failed**"
         };
       }
-    }
-    
-    // If no missing details, proceed with SQL execution
-    const query = input.query;
-    if (!query || query.trim() === "") {
-      throw new Error("SQL query is empty.");
-    }
+    },
+    finalResponsePrompt,
+    llm,
+    new StringOutputParser(),
+  ]);
+  
+
+  app.post("/process-sql", async (req, res) => {
     try {
-      const response = await db.run(cleanSqlQuery(query));
-      return {
-        question,
-        query,
-        response,
-        intentMessage: `📌 **Intent Detected:** ${intent}`,
-        entityMessage: `🔍 **Entities Identified:** ${entities.length > 0 ? entities.join(", ") : "None"}`,
-      };
-    } catch (dbError) {
-      console.error("❌ SQL Execution Error:", dbError);
-      return {
-        question,
-        response: "I'm unable to process this request. Please check the question or try again later.",
-        intentMessage: `📌 **Intent Detected:** ${intent || "Unknown"}`,
-        entityMessage: "🔍 **Entity Detection Failed**"
-      };
+      const userId = req.body.userId || req.headers['x-user-id'] || "defaultUser"; // Unique user identifier
+      const question = req.body.question || req.query.question || req.body.input?.text;
+  
+      console.log(`📝 Processing for user [${userId}]:`, question);
+  
+      const finalResponse = await finalChain.invoke({ question, userId });
+  
+      const finalText = typeof finalResponse === "string"
+        ? finalResponse
+        : finalResponse.text || JSON.stringify(finalResponse);
+  
+      console.log("✅ Response:", finalText);
+      res.json({ output: finalText });
+    } catch (error) {
+      console.error("❌ Error processing request:", error);
+      res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
     }
-  },
-  finalResponsePrompt,
-  llm,
-  new StringOutputParser(),
-]);
-
-app.post("/process-sql", async (req, res) => {
-  try {
-    console.log("Received request:", req.body);
-    const question = req.body.question || req.query.question || req.body.input?.text;
-    console.log("📝 Processing:", question);
-    const finalResponse = await finalChain.invoke({ question });
-    const finalText = typeof finalResponse === "string" ? finalResponse : finalResponse.text || JSON.stringify(finalResponse);
-    console.log("✅ Response:", finalText);
-    res.json({ output: finalText });
-    console.log("📩 Request Headers:", req.headers);
-    console.log("📩 Request Body:", JSON.stringify(req.body, null, 2));
-    console.log("📩 Query Params:", req.query);
-  } catch (error) {
-    console.error("❌ Error processing request:", error);
-    res.status(500).json({ error: "Query Processing Error", message: "An unexpected error occurred. Please try again." });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+  });
   
 
 
 
-// app.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT}`);
-// });
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
