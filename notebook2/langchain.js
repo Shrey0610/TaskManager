@@ -314,9 +314,15 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
       const query = input.query;
     
       try {
-        if (!query || query.trim() === "") {
-          throw new Error("SQL query is empty.");
-        }
+        if (query.startsWith("INSERT INTO assignees") && query.includes("VALUES (")) {
+        query = query.replace(
+          /VALUES \(\s*\d+\s*,/,
+          "VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM assignees),"
+        );
+      }
+      if (!query || query.trim() === "") {
+        throw new Error("SQL query is empty.");
+      }
   
         const response = await db.run(cleanSqlQuery(query));
         const intent = detectIntent(input.question, sessionData);
