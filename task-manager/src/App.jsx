@@ -12,6 +12,19 @@ import TaskSearch from "./TaskSearch";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { Button } from "@mui/material";
 
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
+
+
+import { ClerkProvider } from '@clerk/clerk-react';
+
+// Import your Publishable Key
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!PUBLISHABLE_KEY) {
+  throw new Error("Missing Publishable Key");
+}
+
+
 function App() {
   const [modalIsOpen, setModalIsOpen] = useState(false);
 
@@ -69,8 +82,11 @@ const AppWrapper = () => {
 
   return (
     <StrictMode>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <Button
+      <header style={{ padding: "20px", backgroundColor: "#f9f9f9", borderBottom: "1px solid #ddd", display: 'flex', justifyContent: 'space-between' }}>
+          <SignedOut>
+            <SignInButton style={{ padding: "10px 20px", fontSize: "16px", cursor: "pointer", backgroundColor: "#007bff", color: "#fff", border: "none", borderRadius: "5px" }} />
+          </SignedOut>
+          <Button
           variant="contained"
           color="primary"
           onClick={toggleUrl}
@@ -85,6 +101,13 @@ const AppWrapper = () => {
           >
           Search
         </Button>
+          <SignedIn>
+            <UserButton />
+          </SignedIn>
+      </header>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+       
 
         {/* On clickling Sync, the state and data gets updated to latest. */}
       </div>
@@ -104,7 +127,9 @@ const AppWrapper = () => {
 };
 
 root.render(
+  <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
   <BrowserRouter>
     <AppWrapper />
   </BrowserRouter>
+  </ClerkProvider>
 );
