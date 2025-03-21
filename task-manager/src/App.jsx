@@ -53,7 +53,7 @@ function App() {
           <AddTaskForm className='adding' />
           <button id='cross' onClick={closeModal}>❌</button>
         </Modal>
-        <button onClick={openModal} style={{ borderColor: 'black' }}>Assign Task</button>
+        <button onClick={openModal} style={{ borderColor: 'black', margin: '18px' }}>Assign Task</button>
       </div>
       <br />
       <TasksTable className='table' />
@@ -82,49 +82,68 @@ const AppWrapper = () => {
 
   return (
     <StrictMode>
-      <header style={{ padding: "20px", backgroundColor: "#f9f9f9", borderBottom: "1px solid #ddd", display: 'flex', justifyContent: 'space-between' }}>
-          <SignedOut>
-            <SignInButton style={{ padding: "10px 20px", fontSize: "16px", cursor: "pointer", backgroundColor: "#007bff", color: "#fff", border: "none", borderRadius: "5px" }} />
-          </SignedOut>
-          <Button
-          variant="contained"
-          color="primary"
-          onClick={toggleUrl}
-          >
-          Switch
-        </Button>
+      <header style={{ 
+        padding: "20px", 
+        backgroundColor: "#9990bf", 
+        color: "#fff", 
+        borderBottom: "2px solidrgba(85, 140, 198, 0.81)", 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center' 
+      }}>
+        <SignedOut>
+          {/* Landing Page: Only shows Sign In button */}
+          <div style={{ textAlign: "center" }}>
+            <SignInButton style={{ 
+              padding: "10px 20px", 
+              fontSize: "16px", 
+              cursor: "pointer", 
+              backgroundColor: "#28a745", 
+              color: "#fff", 
+              border: "none", 
+              borderRadius: "5px" 
+            }} />
+          </div>
+        </SignedOut>
 
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={toggleUrl2}
-          >
-          Search
-        </Button>
-          <SignedIn>
+        <SignedIn>
+            <h1 style={{ margin: 0, fontSize: "24px" }}>Task Manager</h1>
+          {/* Navigation buttons after signing in */}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <Button 
+              variant="contained" 
+              style={{ backgroundColor: "#55aaff", color: "#fff" }} 
+              onClick={toggleUrl}
+            >
+              {isEmployees ? "Tasks" : "Employees"}
+            </Button>
+            <Button 
+              variant="contained" 
+              style={{ backgroundColor: "#17a2b8", color: "#fff" }} 
+              onClick={toggleUrl2}
+            >
+              Search
+            </Button>
             <UserButton />
-          </SignedIn>
+          </div>
+        </SignedIn>
       </header>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-       
-
-        {/* On clickling Sync, the state and data gets updated to latest. */}
-      </div>
-      <br />
-      <br />
-      {/* <TasksProvider> */}
-        <EmployeeProvider>
-          <Routes>
-            <Route index element={<App />} />
-            <Route path="/employees" element={<Employees />} />
-            <Route path="/search" element={<TaskSearch />} />
-          </Routes>
-        </EmployeeProvider>
-      {/* </TasksProvider> */}
+      <main style={{ padding: "20px", minHeight: "calc(100vh - 80px)" }}>
+        <SignedIn>
+          <EmployeeProvider>
+            <Routes>
+              <Route index element={<App />} />
+              <Route path="/employees" element={<Employees />} />
+              <Route path="/search" element={<TaskSearch />} />
+            </Routes>
+          </EmployeeProvider>
+        </SignedIn>
+      </main>
     </StrictMode>
   );
 };
+
 
 root.render(
   <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
