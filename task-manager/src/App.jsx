@@ -82,52 +82,56 @@ const AppWrapper = () => {
 
   return (
     <StrictMode>
-      <header style={{ 
-        padding: "20px", 
-        backgroundColor: "#9990bf", 
-        color: "#fff", 
-        borderBottom: "2px solidrgba(85, 140, 198, 0.81)", 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center' 
-      }}>
         <SignedOut>
-          {/* Landing Page: Only shows Sign In button */}
-          <div style={{ textAlign: "center" }}>
-            <SignInButton style={{ 
-              padding: "10px 20px", 
-              fontSize: "16px", 
-              cursor: "pointer", 
-              backgroundColor: "#28a745", 
-              color: "#fff", 
-              border: "none", 
-              borderRadius: "5px" 
-            }} />
-          </div>
-        </SignedOut>
+          {/* /* Landing Page: Only shows Sign In button */ }
 
-        <SignedIn>
-            <h1 style={{ margin: 0, fontSize: "24px" }}>Task Manager</h1>
-          {/* Navigation buttons after signing in */}
+                <SignInButton style={{ 
+                  display: "flex", 
+                  justifyContent: "center", 
+                  alignItems: "center", 
+                  // height: "100vh", 
+                  textAlign: "center" ,
+                  padding: "10px 20px", 
+                  fontSize: "16px", 
+                  cursor: "pointer", 
+                  backgroundColor: "#28a745", 
+                  color: "#fff", 
+                  border: "none", 
+                  borderRadius: "5px" 
+                }} />
+              </SignedOut>
+
+              <SignedIn>
+                  <header style={{ 
+                  padding: "20px", 
+                  backgroundColor: "#9990bf", 
+                  color: "#fff", 
+                  borderBottom: "2px solid rgba(85, 140, 198, 0.81)", 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center' 
+                  }}>
+                <h1 style={{ margin: 0, fontSize: "24px" }}>Task Manager</h1>
+                {/* Navigation buttons after signing in */}
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <Button 
               variant="contained" 
-              style={{ backgroundColor: "#55aaff", color: "#fff" }} 
+              style={{ backgroundColor: "#8fa5a8", color: "#fff" }} 
               onClick={toggleUrl}
             >
               {isEmployees ? "Tasks" : "Employees"}
             </Button>
             <Button 
               variant="contained" 
-              style={{ backgroundColor: "#17a2b8", color: "#fff" }} 
+              style={{ backgroundColor: "#8fa5a8", color: "#fff" }} 
               onClick={toggleUrl2}
             >
               Search
             </Button>
             <UserButton />
           </div>
-        </SignedIn>
       </header>
+        </SignedIn>
 
       <main style={{ padding: "20px", minHeight: "calc(100vh - 80px)" }}>
         <SignedIn>
