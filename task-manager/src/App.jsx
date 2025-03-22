@@ -12,7 +12,9 @@ import TaskSearch from "./TaskSearch";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { Button } from "@mui/material";
 
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
+import SignInPage from "./SignInPage.jsx";
+
 
 
 import { ClerkProvider } from '@clerk/clerk-react';
@@ -82,24 +84,28 @@ const AppWrapper = () => {
 
   return (
     <StrictMode>
-        <SignedOut>
-          {/* /* Landing Page: Only shows Sign In button */ }
-
-                <SignInButton style={{ 
-                  display: "flex", 
-                  justifyContent: "center", 
-                  alignItems: "center", 
-                  // height: "100vh", 
-                  textAlign: "center" ,
-                  padding: "10px 20px", 
-                  fontSize: "16px", 
-                  cursor: "pointer", 
-                  backgroundColor: "#28a745", 
+         <header style={{ 
+                  padding: "20px", 
+                  backgroundColor: "rgba(167, 173, 117, 0.81)", 
                   color: "#fff", 
-                  border: "none", 
-                  borderRadius: "5px" 
-                }} />
-              </SignedOut>
+                  // borderBottom: "2px solid rgba(223, 239, 197, 0.61)", 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  }}>
+                <h1 style={{ margin: 0, fontSize: "24px" }}>Sem 8 Project</h1>
+
+                <Button 
+              variant="contained" 
+              style={{ backgroundColor: "#465d66", color: "#fff" }} 
+            >
+              About Us
+            </Button>
+                {/* Navigation buttons after signing in */}
+      </header>
+<SignedOut>
+  <SignInPage path="/"  />
+</SignedOut>
 
               <SignedIn>
                   <header style={{ 
