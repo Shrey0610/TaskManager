@@ -86,7 +86,7 @@ const AppWrapper = () => {
     <StrictMode>
 <SignedOut>
          <header style={{ 
-                  padding: "20px", 
+                  padding: "25px", 
                   backgroundColor: "rgba(167, 173, 117, 0.81)", 
                   color: "#fff", 
                   // borderBottom: "2px solid rgba(223, 239, 197, 0.61)", 
@@ -109,7 +109,7 @@ const AppWrapper = () => {
 
               <SignedIn>
                   <header style={{ 
-                  padding: "20px", 
+                  padding: "25px", 
                   backgroundColor: "#9990bf", 
                   color: "#fff", 
                   borderBottom: "2px solid rgba(85, 140, 198, 0.81)", 
