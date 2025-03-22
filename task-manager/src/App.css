@@ -1,7 +1,7 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  max-width: auto;
+  margin: 0px;
+  /* padding: 2rem; */
   text-align: center;
 }
 
@@ -11,9 +11,11 @@
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -41,33 +43,32 @@
   color: #888;
 }
 
-
-.App{
+.App {
   max-width: 1280px;
-  margin: 0 auto;
+  margin: 0;
   padding: 2rem;
   text-align: center;
 }
 
-.savebutton{
+.savebutton {
   margin-right: 5px;
 }
 
-#cross{
+#cross {
   position: absolute;
   top: 0;
   right: 0;
-  background-color:white;
+  background-color: white;
   margin: 1.3rem;
 }
 
-TasksProvider{
+TasksProvider {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   border-bottom-width: 2px;
 }
 
-/* .modal{ */
-  /* width: 200px;
+/* .modal {
+  width: 200px;
   height: 150px;
-  inherits: TasksProvider; */
-/* } */
+  inherits: TasksProvider;
+} */

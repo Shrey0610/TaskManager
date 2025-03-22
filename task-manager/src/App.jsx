@@ -5,7 +5,7 @@ import { EmployeeProvider } from "./EmployeeContext";
 import AddTaskForm from "./AddTaskForm";
 import TasksTable from "./TasksTable";
 import './App.css';
-import './index.css';
+// import './index.css';
 import Modal from 'react-modal';
 import Employees from "./Employees";
 import TaskSearch from "./TaskSearch";
@@ -84,6 +84,7 @@ const AppWrapper = () => {
 
   return (
     <StrictMode>
+<SignedOut>
          <header style={{ 
                   padding: "20px", 
                   backgroundColor: "rgba(167, 173, 117, 0.81)", 
@@ -103,7 +104,6 @@ const AppWrapper = () => {
             </Button>
                 {/* Navigation buttons after signing in */}
       </header>
-<SignedOut>
   <SignInPage path="/"  />
 </SignedOut>
 
@@ -139,8 +139,8 @@ const AppWrapper = () => {
       </header>
         </SignedIn>
 
-      <main style={{ padding: "20px", minHeight: "calc(100vh - 80px)" }}>
-        <SignedIn>
+        <SignedIn style={{ minHeight: "calc(100vh - 80px)" }}>
+
           <EmployeeProvider>
             <Routes>
               <Route index element={<App />} />
@@ -148,8 +148,8 @@ const AppWrapper = () => {
               <Route path="/search" element={<TaskSearch />} />
             </Routes>
           </EmployeeProvider>
+
         </SignedIn>
-      </main>
     </StrictMode>
   );
 };

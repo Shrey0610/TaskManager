@@ -36,30 +36,30 @@ const items = [
 export default function Content() {
 return (
     <Stack
-        sx={{
-            flexDirection: 'column',
-            alignSelf: 'center',
-            gap: 4,
-            maxWidth: 450,
-            marginTop: -5, // Adjust this value to bring the content up
-        }}
-    >
-        <Box sx={{ display: { xs: 'none', md: 'flex', margin: 'auto' } }}>
-            <h1 style={{marginBottom: '-2px'}}> Welcome to Task Manager</h1>
-        </Box>
-        {items.map((item, index) => (
-            <Stack key={index} direction="row" sx={{ gap: 2, alignItems: 'left' }} >
-                {item.icon}
-                <div>
-                    <Typography gutterBottom sx={{ fontWeight: 'medium' }}>
-                        {item.title}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        {item.description}
-                    </Typography>
-                </div>
-            </Stack>
-        ))}
-    </Stack>
+    sx={{
+        flexDirection: 'column',
+        alignSelf: 'center',
+        gap: 4,
+        maxWidth: 450,
+        mt: -5, // Use shorthand for marginTop
+    }}
+>
+    <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center' }}>
+        <h1 style={{ marginBottom: '-2px', textAlign: 'center' }}>Welcome to Task Manager</h1>
+    </Box>
+    {items.map((item, index) => (
+        <>
+            <Box>
+        <Stack key={index} direction="row" sx={{ gap: 2 }}>
+            {item.icon}
+                <Typography variant="body2" gutterBottom sx={{ fontWeight: 'medium' }}>
+                    {item.description}
+                </Typography>
+        </Stack>
+            </Box>
+            </>
+    ))}
+</Stack>
+
 );
 }
