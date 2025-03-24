@@ -86,12 +86,15 @@ const AppWrapper = () => {
   return (
     <StrictMode>
       <ThemeProviderWrapper>
-        <ColorModeSelect sx={{ position: 'fixed', top: '6rem', right: '1rem' }} />
 <SignedOut>
+        <ColorModeSelect sx={{ position: 'absolute', top: '6rem', right: '1rem' }} />
          <header style={{ 
                   padding: "25px", 
                   backgroundColor: "rgba(167, 173, 117, 0.81)", 
                   color: "#fff", 
+                  position: 'fixed',
+                  zIndex: 1000,
+                  width: '100%',
                   // borderBottom: "2px solid rgba(223, 239, 197, 0.61)", 
                   display: 'flex', 
                   justifyContent: 'space-between', 
@@ -111,6 +114,7 @@ const AppWrapper = () => {
 </SignedOut>
 
               <SignedIn>
+              <ColorModeSelect sx={{ position: 'absolute', top: '6rem', right: '1rem' }} />
                   <header style={{ 
                   padding: "25px", 
                   backgroundColor: "#9990bf", 

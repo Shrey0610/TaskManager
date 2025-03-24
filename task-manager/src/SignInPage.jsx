@@ -20,6 +20,7 @@ export default function SignInPage() {
             height: 'calc((1 - var(--template-frame-height, 0)) * 100%)',
             marginTop: 'max(90px - var(--template-frame-height, 0px), 0px)',
             minHeight: '100%',
+            mt: '150px'
           },
           (theme) => ({
             '&::before': {
@@ -59,9 +60,6 @@ export default function SignInPage() {
           >
             <Content />
             <SignIn path="/" 
-             appearance={{
-                baseTheme: "dark", // Enable dark mode
-              }}
               />
           </Stack>
         </Stack>
