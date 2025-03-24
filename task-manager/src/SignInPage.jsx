@@ -1,14 +1,16 @@
 import CssBaseline from '@mui/material/CssBaseline';
 import Stack from '@mui/material/Stack';
-import ColorModeSelect from './assets/ColorModeSelect';
+// import ColorModeSelect from './assets/ColorModeSelect';
 import Content from './assets/Content';
 import { SignIn } from "@clerk/clerk-react";
+// import {ThemeProviderWrapper}  from "./assets/ThemeContext"; 
 
 export default function SignInPage() {
   return (
     <>
       <CssBaseline enableColorScheme />
-      <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
+      {/* <ThemeProviderWrapper> */}
+      {/* <ColorModeSelect sx={{ position: 'fixed', top: '6rem', right: '1rem' }} /> */}
       <Stack
         direction="column"
         component="main"
@@ -56,10 +58,15 @@ export default function SignInPage() {
             }}
           >
             <Content />
-            <SignIn path="/" />
+            <SignIn path="/" 
+             appearance={{
+                baseTheme: "dark", // Enable dark mode
+              }}
+              />
           </Stack>
         </Stack>
       </Stack>
+      {/* </ThemeProviderWrapper> */}
     </>
   );
 }

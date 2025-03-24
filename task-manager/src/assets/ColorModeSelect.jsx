@@ -1,24 +1,16 @@
-import { useColorScheme } from '@mui/material/styles';
-import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
+import { useThemeContext } from "./ThemeContext"; // Import our custom theme context
 
 export default function ColorModeSelect(props) {
-  const { mode, setMode } = useColorScheme();
-
-  if (!mode) {
-    return null;
-  }
+  const { mode, toggleTheme } = useThemeContext(); // Get mode and toggle function
 
   return (
     <Select
       value={mode}
-      onChange={(event) => setMode(event.target.value)}
-      SelectDisplayProps={{
-        'data-screenshot': 'toggle-mode', // Removed TypeScript-specific ignore comment
-      }}
+      onChange={toggleTheme}
       {...props}
     >
-      <MenuItem value="system">System</MenuItem>
       <MenuItem value="light">Light</MenuItem>
       <MenuItem value="dark">Dark</MenuItem>
     </Select>

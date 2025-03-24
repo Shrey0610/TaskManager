@@ -15,7 +15,8 @@ import { Button } from "@mui/material";
 import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 import SignInPage from "./SignInPage.jsx";
 
-
+import {ThemeProviderWrapper}  from "./assets/ThemeContext"; 
+import ColorModeSelect from './assets/ColorModeSelect';
 
 import { ClerkProvider } from '@clerk/clerk-react';
 
@@ -84,6 +85,8 @@ const AppWrapper = () => {
 
   return (
     <StrictMode>
+      <ThemeProviderWrapper>
+        <ColorModeSelect sx={{ position: 'fixed', top: '6rem', right: '1rem' }} />
 <SignedOut>
          <header style={{ 
                   padding: "25px", 
@@ -150,6 +153,7 @@ const AppWrapper = () => {
           </EmployeeProvider>
 
         </SignedIn>
+        </ThemeProviderWrapper>
     </StrictMode>
   );
 };
