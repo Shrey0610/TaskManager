@@ -10,7 +10,8 @@ export default function SignInPage() {
     const [darkMode, ] = useState(false); // State for dark mode
     const styles = {
         container: {
-            maxWidth: "400px",
+            width: "450px",
+            height: "500px",
             margin: "auto",
             padding: "20px",
             textAlign: "center",
@@ -58,6 +59,8 @@ export default function SignInPage() {
 
     const { signIn, setActive } = useSignIn();
     const [email, setEmail] = useState("");
+    // const [firstName, setFirstName] = useState("");
+    // const [lastName, setLastName] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [pendingVerification, setPendingVerification] = useState(false);
@@ -67,11 +70,12 @@ export default function SignInPage() {
 
     const handleSignIn = async () => {
         try {
-            const response = await signIn.create({ identifier: email, password });
+            const response = await signIn.create({ identifier: email, password, });
 
             if (response.status === "complete") {
                 await setActive({ session: response.createdSessionId });
                 console.log("response email", response.identifier);
+                console.log(response);
             } else if (response.firstFactorVerification) {
                 setPendingVerification(true);
             }
@@ -145,7 +149,33 @@ export default function SignInPage() {
                             </>
                         ) : (
                             <>
-                                <div style={{ textAlign: "left", width: "100%" }}>
+                                {/* <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", marginLeft: "8%", marginRight: "8%" }}>
+                                    <div style={{ flex: 1, marginRight: "10px" }}>
+                                        <div style={{ textAlign: "left", width: "100%" }}>
+                                            <label>First Name <span style={{ fontSize: "0.8em", color: "gray" }}>(Optional)</span></label>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder="First Name"
+                                            value={firstName}
+                                            onChange={(e) => setFirstName(e.target.value)}
+                                            style={styles.input}
+                                        />
+                                    </div>
+                                    <div style={{ flex: 1, marginLeft: "10px" }}>
+                                        <div style={{ textAlign: "left", width: "100%" }}>
+                                            <label>Last Name <span style={{ fontSize: "0.8em", color: "gray" }}>(Optional)</span></label>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder="Last Name"
+                                            value={lastName}
+                                            onChange={(e) => setLastName(e.target.value)}
+                                            style={styles.input}
+                                        />
+                                    </div>
+                                </div> */}
+                                <div style={{ textAlign: "left", width: "50%", marginLeft: "8%" }}>
                                     <label>Email Address</label>
                                 </div>
                                 <input
@@ -155,7 +185,7 @@ export default function SignInPage() {
                                     onChange={(e) => setEmail(e.target.value)}
                                     style={styles.input}
                                 />
-                                <div style={{ textAlign: "left", width: "100%" }}>
+                                <div style={{ textAlign: "left", width: "50%", marginLeft: "8%" }}>
                                     <label>Password</label>
                                 </div>
                                 <div style={{ position: "relative" }}>

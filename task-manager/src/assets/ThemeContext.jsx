@@ -22,7 +22,7 @@ export function ThemeProviderWrapper({ children }) {
                     mode,
                     ...(mode === "dark" && {
                         background: {
-                            default: "#2E2B26", // Dark creamish color
+                            default: "#2E2B2F", // Dark creamish color
                             paper: "#3C3A35", // Slightly lighter creamish color for paper
                         },
                     }),
