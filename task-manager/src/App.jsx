@@ -56,7 +56,7 @@ function App() {
           <AddTaskForm className='adding' />
           <button id='cross' onClick={closeModal}>❌</button>
         </Modal>
-        <button onClick={openModal} style={{ borderColor: 'black', margin: '18px' }}>Assign Task</button>
+        <button onClick={openModal} style={{ borderColor: 'black', marginLeft: '18px' }}>Assign Task</button>
       </div>
       <br />
       <TasksTable className='table' />
@@ -122,7 +122,10 @@ const AppWrapper = () => {
                   borderBottom: "2px solid rgba(85, 140, 198, 0.81)", 
                   display: 'flex', 
                   justifyContent: 'space-between', 
-                  alignItems: 'center' 
+                  alignItems: 'center',
+                  position: 'fixed',
+                  zIndex: 1000,
+                  width: '100%',
                   }}>
                 <h1 style={{ margin: 0, fontSize: "24px" }}>Task Manager</h1>
                 {/* Navigation buttons after signing in */}
