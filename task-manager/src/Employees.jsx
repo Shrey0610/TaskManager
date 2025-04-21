@@ -82,11 +82,11 @@ const Employees = () => {
         backgroundColor: "#e0e0e0",
         padding: "20px",
         borderRight: "1px solid #ccc",
+        boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
         height: "100vh",
         position: "fixed",
         top: "100px", // Adjust this to match the height of the navbar
         left: 0,
-        boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
     };
 
     const contentStyles = {
@@ -148,6 +148,17 @@ const Employees = () => {
         </Button>
         </a>
     </li>
+     <li style={{ marginBottom: "10px" }}>
+            <a href="/analytics" style={{ textDecoration: "none" }}>
+                <Button variant="contained" fullWidth style={{ backgroundColor: "#1976d2", color: "white", display: "flex", alignItems: "center", justifyContent: "center", gap: "2px"}}>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"  style={{ width: "20px", height: "20px" }}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z" />
+    </svg>
+    
+                    Analytics
+                </Button>
+            </a>
+        </li>
                 </ul>
             </div>
 

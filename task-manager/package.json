@@ -17,6 +17,7 @@
     "@mui/icons-material": "^6.4.8",
     "@mui/material": "^6.4.4",
     "@mui/styled-engine": "^6.4.8",
+    "@mui/x-charts": "^8.0.0",
     "@mui/x-date-pickers": "^7.26.0",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",

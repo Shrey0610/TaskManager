@@ -10,6 +10,7 @@ import Modal from 'react-modal';
 import Employees from "./Employees";
 import TaskSearch from "./TaskSearch";
 import Dashboard from "./Dashboard";
+import Analytics from "./Analytics";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 // import { Button } from "@mui/material";
 
@@ -158,7 +159,7 @@ const AppWrapper = () => {
         <SignedIn style={{ minHeight: "calc(100vh - 80px)" }}>
   <Routes>
     {/* Wrap EmployeeProvider only around routes that need it */}
-  <Route
+    <Route
   path="/employees"
   element={
     <EmployeeProvider>
@@ -184,6 +185,17 @@ const AppWrapper = () => {
     <TasksProvider>
       <EmployeeProvider>
         <Dashboard />
+      </EmployeeProvider>
+    </TasksProvider>
+  }
+/>
+
+<Route
+  path="/analytics"
+  element={
+    <TasksProvider>
+      <EmployeeProvider>
+        <Analytics />
       </EmployeeProvider>
     </TasksProvider>
   }
