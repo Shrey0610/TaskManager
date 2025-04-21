@@ -227,26 +227,32 @@ const EditTaskForm = () => {
 
             </>
             <Modal
-                isOpen={isAlertOpen}
-                onRequestClose={() => setIsAlertOpen(false)}
-                contentLabel="Task Edited Alert"
-                style={{
-                    content: {
-                        top: '10px',
-                        right: '10px',
-                        bottom: 'auto',
-                        left: 'auto',
-                        transform: 'none',
-                        width: '300px',
-                        height: '50px',
-                        padding: '20px',
-                        border: '1px solid #ccc',
-                        borderRadius: '10px',
-                    },
-                }}
-            >
-                <h2>Task Edited Successfully!</h2>
-            </Modal>
+               isOpen={isAlertOpen}
+               onRequestClose={() => setIsAlertOpen(false)}
+               contentLabel="Task Assigned Alert"
+               style={{
+                   overlay: {
+                       backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                       zIndex: 1000
+                   },
+                   content: {
+                       top: '50%',
+                       left: '50%',
+                       right: 'auto',
+                       bottom: 'auto',
+                       marginRight: '-50%',
+                       transform: 'translate(-50%, -50%)',
+                       width: '300px',
+                       padding: '20px',
+                       border: '1px solid #ccc',
+                       borderRadius: '10px',
+                       textAlign: 'center',
+                       boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
+                   }
+               }}
+           >
+               <h2>The Task has been Edited!</h2>
+           </Modal>
         </Container>
     );
 };

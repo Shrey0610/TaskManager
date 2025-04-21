@@ -230,11 +230,17 @@ const prompt = PromptTemplate.fromTemplate(`
     llm.bind({ stop: ["\nSQLResult:"] }),
     new StringOutputParser(),
     async (query) => {
-      // If the query is an INSERT and contains a fixed id value, replace it with a dynamic id subquery.
+      // Improve the ID handling for INSERT queries
       if (query.startsWith("INSERT INTO assignees") && query.includes("VALUES (")) {
         query = query.replace(
           /VALUES \(\s*\d+\s*,/,
-          "VALUES ((SELECT COALESCE(MAX(id), 0) + 1),"
+          "VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM assignees),",
+        );
+      }
+      if (query.startsWith("INSERT INTO tasks") && query.includes("VALUES (")) {
+        query = query.replace(
+          /VALUES \(\s*\d+\s*,/,
+          "VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM tasks),",
         );
       }
       if (!query || query.trim() === "") {
@@ -242,7 +248,6 @@ const prompt = PromptTemplate.fromTemplate(`
       }
       return query;
     }
-    
   ]);
 
   const userSession = {}; // Temporary session store for tracking conversation state
@@ -314,7 +319,6 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
     async (input) => {
       const userId = input.userId || "defaultUser";  // Identify user uniquely
       const sessionData = userSession[userId] || {}; // Track user state
-    
       const query = input.query;
     
       try {
@@ -322,13 +326,41 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
           throw new Error("SQL query is empty.");
         }
   
-        const response = await db.run(cleanSqlQuery(query));
+        // Enhanced error handling for SQL execution
+        let response;
+        try {
+          response = await db.run(cleanSqlQuery(query));
+        } catch (sqlError) {
+          // Handle the specific case of duplicate primary key
+          if (sqlError.code === 'ER_DUP_ENTRY') {
+            if (query.startsWith("INSERT INTO assignees")) {
+              // Generate a new query with the next available ID
+              const maxIdResult = await db.run("SELECT MAX(id) + 1 as nextId FROM assignees");
+              const nextId = maxIdResult[0]?.nextId || 1;
+              const modifiedQuery = query.replace(/VALUES\s*\(\s*\d+\s*,/, `VALUES (${nextId},`);
+              response = await db.run(cleanSqlQuery(modifiedQuery));
+            } else if (query.startsWith("INSERT INTO tasks")) {
+              // Similar approach for tasks table
+              const maxIdResult = await db.run("SELECT MAX(id) + 1 as nextId FROM tasks");
+              const nextId = maxIdResult[0]?.nextId || 1;
+              const modifiedQuery = query.replace(/VALUES\s*\(\s*\d+\s*,/, `VALUES (${nextId},`);
+              response = await db.run(cleanSqlQuery(modifiedQuery));
+            } else {
+              throw sqlError; // Re-throw if we can't handle it
+            }
+          } else {
+            throw sqlError; // Re-throw other SQL errors
+          }
+        }
+  
+        // Your existing intent and entity detection logic
         const intent = detectIntent(input.question, sessionData);
         const entities = detectEntities(input.question);
         
         let intentMessage = "";
         let entityMessage = "";
   
+        // Employee addition intent handling
         if (intent === "add-employee") {
           const requiredDetails = ["name", "email", "phoneNum", "dob"];  // Define required details
           const providedDetails = entities || [];
@@ -347,7 +379,8 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
             };
           }
         }
-
+  
+        // Task addition intent handling
         if (intent === "add-task") {
           const requiredDetails = ["task_name", "priority", "taskAssignee", "taskStatus", "start", "end"];  // Define required details
           const providedDetails = entities || [];
@@ -367,6 +400,7 @@ const finalResponsePrompt = PromptTemplate.fromTemplate(`
           }
         }
   
+        // Incomplete action handling
         if (intent === "incomplete-action" && sessionData.pendingDetails) {
           const missingDetails = sessionData.pendingDetails;
           const providedDetails = entities || [];

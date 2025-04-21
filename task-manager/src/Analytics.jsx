@@ -169,7 +169,7 @@ const Analytics = () => {
 
             {/* Main Content */}
             <div style={contentStyles}>
-                <Typography variant="h4" gutterBottom style={{margin: "20px", fontWeight: "bold", color: "#444"}}>
+                <Typography variant="h4" gutterBottom style={{margin: "20px", fontWeight: "bold", color: "#444", marginBottom: '50px'}}>
                     Analytics Dashboard
                 </Typography>
 
@@ -177,7 +177,7 @@ const Analytics = () => {
                     {/* Total Tasks */}
                     <Grid item xs={12} md={6}>
                         <Paper elevation={3} style={{ padding: "1rem" }}>
-                            <Typography variant="h6">Task Priority Distribution by Employee</Typography>
+                            <Typography variant="h6" style={{marginTop: '10px'}}>Task Priority Distribution by Employee</Typography>
                             <BarChart
                                 xAxis={[{ scaleType: 'band', data: employeeNames }]}
                                 series={[
@@ -212,7 +212,7 @@ const Analytics = () => {
 
                     {/* Pie Chart for Task Status */}
                     <Grid item xs={12} md={6}>
-                        <Paper elevation={3} style={{ padding: "1rem" }}>
+                        <Paper elevation={3} style={{ padding: "3rem" }}>
                             <Typography variant="h6">Task Status Overview</Typography>
                             <PieChart
                                 series={[{
@@ -222,7 +222,7 @@ const Analytics = () => {
                                     paddingAngle: 5,
                                     cornerRadius: 5,
                                 }]}
-                                height={400}
+                                height={373}
                             />
                         </Paper>
                     </Grid>

@@ -4,7 +4,9 @@ import {Button} from "@mui/material";
 import { useContext } from 'react';
 import { TasksContext } from './TasksContext';
 import { EmployeeContext } from './EmployeeContext';
-
+import { BarChart } from '@mui/x-charts/BarChart';
+import { PieChart } from '@mui/x-charts/PieChart';
+import { Paper, Typography, Grid } from "@mui/material";
 
 
 const DashboardCard = ({ title, count, icon }) => {
@@ -54,29 +56,25 @@ const Dashboard = () => {
       backgroundColor: "#F9FAFB",
       minHeight: "100vh",
       marginTop: "100px", // Adjust this to match the height of the navbar
+      marginBottom: "60px",
     };
-const sidebarStyles = {
-    width: "250px",
-    backgroundColor: "#e0e0e0",
-    padding: "20px",
-    borderRight: "1px solid #ccc",
-    height: `calc(${contentStyles.minHeight} + 40px)`,
-    position: "fixed",
-    top: "100px", // Adjust this to match the height of the navbar
-    left: 0,
-    boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
-};
+    const sidebarStyles = {
+        width: "250px",
+        backgroundColor: "#e0e0e0",
+        padding: "20px",
+        borderRight: "1px solid #ccc",
+        height: `calc(${contentStyles.minHeight} + 40px)`,
+        position: "fixed",
+        top: "100px", // Adjust this to match the height of the navbar
+        left: 0,
+        boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
+    };
 
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
       {/* Sidebar */}
-      <div style={
-               sidebarStyles
-            }>
-                {/* <Typography variant="h6" gutterBottom style={{ fontWeight: "bold", color: "#333" }}>
-                    Sidebar
-                </Typography> */}
+      <div style={sidebarStyles}>
                 <ul style={{ listStyleType: "none", padding: 0 }}>
                 <li style={{ marginBottom: "10px" }}>
                 <a href="/dashboard" style={{ textDecoration: "none" }}>
@@ -125,27 +123,20 @@ const sidebarStyles = {
         </Button>
         </a>
     </li>
-     <li style={{ marginBottom: "10px" }}>
-            <a href="/analytics" style={{ textDecoration: "none" }}>
-                <Button variant="contained" fullWidth style={{ backgroundColor: "#1976d2", color: "white", display: "flex", alignItems: "center", justifyContent: "center", gap: "2px"}}>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"  style={{ width: "20px", height: "20px" }}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z" />
-    </svg>
-    
-                    Analytics
-                </Button>
-            </a>
-        </li>
                 </ul>
             </div>
 
       {/* Main Content */}
       <div style={contentStyles}>
-        <h2 style={{ fontWeight: 'bold', marginBottom: '20px' }}>DASHBOARD</h2>
+      <Typography variant="h4" gutterBottom style={{fontWeight: "bold", color: "#444"}}>
+            Dashboard
+        </Typography>
         <div style={{
           display: 'flex',
           gap: '20px',
-          flexWrap: 'wrap',color: "white"
+          flexWrap: 'wrap',
+          color: "white",
+          marginBottom: '80px'
         }}>
             
           <DashboardCard
@@ -167,9 +158,95 @@ const sidebarStyles = {
             }
           />
         </div>
+    
+
+        <Grid container spacing={4}>
+            {/* Total Tasks */}
+            <Grid item xs={12} md={6}>
+                <Paper elevation={3} style={{ padding: "1rem" }}>
+                    <Typography variant="h6" style={{marginTop: '10px'}}>Task Priority Distribution by Employee</Typography>
+                    <BarChart
+                        xAxis={[{ scaleType: 'band', data: assignees.map(e => e.name) }]}
+                        series={[
+                            {
+                                data: assignees.map(employee => {
+                                    const assignedTasks = tasks.filter(task => task.taskAssignee === employee.name);
+                                    return assignedTasks.filter(task => task.priority === "High").length;
+                                }),
+                                label: 'High Priority',
+                                color: '#d32f2f', // Red for high priority
+                                stack: 'priority',
+                            },
+                            {
+                                data: assignees.map(employee => {
+                                    const assignedTasks = tasks.filter(task => task.taskAssignee === employee.name);
+                                    return assignedTasks.filter(task => task.priority === "Medium").length;
+                                }),
+                                label: 'Medium Priority',
+                                color: '#ff9800', // Orange for medium priority
+                                stack: 'priority',
+                            },
+                            {
+                                data: assignees.map(employee => {
+                                    const assignedTasks = tasks.filter(task => task.taskAssignee === employee.name);
+                                    return assignedTasks.filter(task => task.priority === "Low").length;
+                                }),
+                                label: 'Low Priority',
+                                color: '#4caf50', // Green for low priority
+                                stack: 'priority',
+                            },
+                        ]}
+                        width={600} // Increased width
+                        height={400}
+                        legend={{ 
+                            position: 'bottom',
+                            direction: 'row'
+                        }}
+                    />
+                </Paper>
+            </Grid>
+
+            {/* Pie Chart for Task Status */}
+            <Grid item xs={12} md={6}>
+                <Paper elevation={3} style={{ padding: "3rem" }}>
+                    <Typography variant="h6">Task Status Overview</Typography>
+                    <PieChart
+                        series={[{
+                            data: Object.entries((() => {
+                                const statusMap = {
+                                    "Not Started": 0,
+                                    "In Progress": 0,
+                                    "Completed": 0,
+                                    "Delayed": 0,
+                                    "Start Delayed": 0,
+                                };
+                                
+                                tasks.forEach(task => {
+                                    if (statusMap[task.taskStatus] !== undefined) {
+                                        statusMap[task.taskStatus]++;
+                                    }
+                                });
+                                
+                                return statusMap;
+                            })()).map(([label, value], index) => ({
+                                id: index,
+                                value,
+                                label,
+                            })),
+                            innerRadius: 30,
+                            outerRadius: 120, // Increased outer radius
+                            paddingAngle: 5,
+                            cornerRadius: 5,
+                        }]}
+                        height={373}
+                    />
+                </Paper>
+            </Grid>
+        </Grid>
       </div>
     </div>
   );
 };
+
 
 export default Dashboard;
