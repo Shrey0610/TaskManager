@@ -46,6 +46,7 @@ function App() {
 
   return (
     <TasksProvider>
+       <div style={{ marginTop: "20px", marginLeft: "270px", display: "flex", flexDirection: 'column', gap: "0px", alignItems: "center" }}>
       <div className="pop-up">
         <Modal
           isOpen={modalIsOpen}
@@ -57,6 +58,7 @@ function App() {
           <button id='cross' onClick={closeModal}>❌</button>
         </Modal>
         <button onClick={openModal} style={{ borderColor: 'black', marginLeft: '18px' }}>Assign Task</button>
+      </div>
       </div>
       <br />
       <TasksTable className='table' />
@@ -78,10 +80,10 @@ const AppWrapper = () => {
     navigate(isEmployees ? '/' : '/employees');
   };
 
-  const toggleUrl2 = () => {
-    setIsEmployees(!isEmployees);
-    navigate(isEmployees ? '/search' : '/search');
-  };
+  // const toggleUrl2 = () => {
+  //   setIsEmployees(!isEmployees);
+  //   navigate(isEmployees ? '/search' : '/search');
+  // };
 
   return (
     <StrictMode>
@@ -137,13 +139,13 @@ const AppWrapper = () => {
             >
               {isEmployees ? "Tasks" : "Employees"}
             </Button>
-            <Button 
+            {/* <Button 
               variant="contained" 
               style={{ backgroundColor: "#8fa5a8", color: "#fff" }} 
               onClick={toggleUrl2}
             >
               Search
-            </Button>
+            </Button> */}
             <UserButton />
           </div>
       </header>

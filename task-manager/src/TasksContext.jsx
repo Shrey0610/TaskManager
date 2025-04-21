@@ -68,7 +68,7 @@ export const TasksProvider = ({ children }) => {
 
     return (
         <>
-        <Button variant="contained" color="primary" onClick={handleSync}>
+        <Button variant="contained" color="primary" onClick={handleSync} style={{marginTop: "100px", marginLeft: "20px"}}>
             Sync Tasks
         </Button>
         <TasksContext.Provider value={{ tasks, addTask, deleteTask, editTask, fetchTasks }}>

@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
 import { EmployeeContext } from "./EmployeeContext";
 import AddEmployeeForm from "./AddEmployeeForm";
-import Modal from 'react-modal';
+import Modal from "react-modal";
 import {
     Table,
     TableBody,
@@ -14,7 +14,7 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
-import './App.css';
+import "./App.css";
 
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -22,19 +22,18 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import EditEmployeeForm from "./EditEmployeeForm";
 
-
 const Employees = () => {
     const { assignees, deleteAssignee, editAssignee } = useContext(EmployeeContext);
     const [editId, setEditId] = useState(null);
     const [editField, setEditField] = useState(null);
     const [editData, setEditData] = useState({ id: "", name: "", email: "", phoneNum: "", dob: "" });
-    
+
     const handleEdit = (employee, field) => {
         setEditId(employee.id);
         setEditField(field);
         setEditData({ id: employee.id, name: employee.name, email: employee.email, phoneNum: employee.phoneNum, dob: employee.dob });
     };
-    
+
     const handleSave = (id) => {
         editAssignee(id, editData);
         setEditId(null);
@@ -42,47 +41,91 @@ const Employees = () => {
     };
 
     const handleKeyPress = (event, id) => {
-        if (event.key === 'Enter') {
+        if (event.key === "Enter") {
             handleSave(id);
         }
     };
-    
+
     const [addModalIsOpen, setAddModalIsOpen] = useState(false);
     const [editModalIsOpen, setEditModalIsOpen] = useState(false);
-    const [selectedEmployee, setSelectedEmployee] = useState(null); // Store selected employee for editing
-    
+    const [selectedEmployee, setSelectedEmployee] = useState(null);
+
     const openAddModal = () => setAddModalIsOpen(true);
     const closeAddModal = () => setAddModalIsOpen(false);
-    
+
     const openEditModal = (employee) => {
         setSelectedEmployee(employee);
         setEditModalIsOpen(true);
     };
-    
+
     const closeEditModal = () => {
         setSelectedEmployee(null);
         setEditModalIsOpen(false);
     };
-    
-  
+
     const customStyles = {
-      content: {
-        border: '2px solid #000', // Adjust the border style here
-        borderRadius: '10px', // Optional: Add border radius
-        width: '50%', // Optional: Adjust width
-        height: '75%', // Optional: Adjust height
-        margin: 'auto', // Center the modal
-      },
-      overlay: {
-        backgroundColor: 'rgba(255, 255, 255, 0)',
-        backdropFilter: 'blur(0.5px)', 
-    }
+        content: {
+            border: "2px solid #000",
+            borderRadius: "10px",
+            width: "50%",
+            height: "75%",
+            margin: "auto",
+        },
+        overlay: {
+            backgroundColor: "rgba(255, 255, 255, 0)",
+            backdropFilter: "blur(0.5px)",
+        },
     };
 
+    const sidebarStyles = {
+        width: "250px",
+        backgroundColor: "#e0e0e0",
+        padding: "20px",
+        borderRight: "1px solid #ccc",
+        height: "100vh",
+        position: "fixed",
+        top: "90px", // Adjust this to match the height of the navbar
+        left: 0,
+        boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
+    };
+
+    const contentStyles = {
+        marginLeft: "270px", // Adjust this to account for the sidebar width
+        padding: "20px",
+    };
 
     return (
-        <div>
-            <div className="pop-up">
+        <div style={{ display: "flex", flexDirection: "column", backgroundColor: "#f9f9f9", minHeight: "100vh" }}>
+            {/* Sidebar */}
+            <div style={sidebarStyles}>
+                {/* <Typography variant="h6" gutterBottom style={{ fontWeight: "bold", color: "#333" }}>
+                    Sidebar
+                </Typography> */}
+                <ul style={{ listStyleType: "none", padding: 0 }}>
+                    <li style={{ marginBottom: "10px" }}>
+                        <Button variant="contained" fullWidth style={{ backgroundColor: "#1976d2", color: "white" }}>
+                            Dashboard
+                        </Button>
+                    </li>
+                    <li style={{ marginBottom: "10px" }}>
+                        <Button variant="contained" fullWidth style={{ backgroundColor: "#1976d2", color: "white" }}>
+                            Tasks
+                        </Button>
+                    </li>
+                    <li style={{ marginBottom: "10px" }}>
+                        <Button variant="contained" fullWidth style={{ backgroundColor: "#1976d2", color: "white" }}>
+                            Employees
+                        </Button>
+                    </li>
+                </ul>
+            </div>
+
+            {/* Main Content */}
+            <div style={contentStyles}>
+
+
+                    {/* Add Employee Button */}
+                    <div className="pop-up">
             <Modal
     isOpen={addModalIsOpen}
     onRequestClose={closeAddModal}
@@ -92,12 +135,13 @@ const Employees = () => {
     <AddEmployeeForm />
     <button id='cross' onClick={closeAddModal}>❌</button>
 </Modal>
-
+<div style={{ display: "flex", flexDirection: 'column', gap: "0px", alignItems: "center" }}>
 <button onClick={openAddModal} style={{ borderColor: 'black' }}>
     Add Employee
 </button>
+</div>
+</div>
 
-                    </div>
 
             <br />
 
@@ -218,6 +262,7 @@ const Employees = () => {
                     </TableBody>
                 </Table>
             </TableContainer>
+        </div>
         </div>
     );
 };

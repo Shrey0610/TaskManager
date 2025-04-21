@@ -118,13 +118,13 @@ const TasksTable = () => {
                 borderRight: "1px solid #ccc",
                 height: "100vh",
                 position: "fixed",
-                top: 0,
+                top: "90px",
                 left: 0,
                 boxShadow: "2px 0 5px rgba(0,0,0,0.1)"
             }}>
-                <Typography variant="h6" gutterBottom style={{ fontWeight: "bold", color: "#333" }}>
+                {/* <Typography variant="h6" gutterBottom style={{ fontWeight: "bold", color: "#333" }}>
                     Sidebar
-                </Typography>
+                </Typography> */}
                 <ul style={{ listStyleType: "none", padding: 0 }}>
                     <li style={{ marginBottom: "10px" }}>
                         <Button variant="contained" fullWidth style={{ backgroundColor: "#1976d2", color: "white" }}>Dashboard</Button>
