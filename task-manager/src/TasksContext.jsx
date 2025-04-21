@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect, } from "react";
 import PropTypes from "prop-types";
 import { Button } from "@mui/material";
+import { useLocation } from "react-router-dom";
 
 export const TasksContext = createContext();
 
@@ -64,13 +65,15 @@ export const TasksProvider = ({ children }) => {
             .catch(error => console.error("Error updating task:", error));
         setTasks(tasks.map(task => (task.id === id ? { ...task, ...updatedTask } : task)));
     };
-
+    const location = useLocation();
 
     return (
         <>
+         {location.pathname === "/" && (
         <Button variant="contained" color="primary" onClick={handleSync} style={{marginTop: "125px", marginLeft: "270px"}}>
             Sync Tasks
         </Button>
+        )}
         <TasksContext.Provider value={{ tasks, addTask, deleteTask, editTask, fetchTasks }}>
             {children}
         </TasksContext.Provider>

@@ -158,24 +158,37 @@ const AppWrapper = () => {
         <SignedIn style={{ minHeight: "calc(100vh - 80px)" }}>
   <Routes>
     {/* Wrap EmployeeProvider only around routes that need it */}
-    <Route
-      path="/employees"
-      element={
-        <EmployeeProvider>
-          <Employees />
-        </EmployeeProvider>
-      }
-    />
-    <Route
-      path="/search"
-      element={
-        <EmployeeProvider>
-          <TaskSearch />
-        </EmployeeProvider>
-      }
-    />
-    <Route index element={<App />} />
-    <Route path="/dashboard" element={<Dashboard />} />
+  <Route
+  path="/employees"
+  element={
+    <EmployeeProvider>
+      <Employees />
+    </EmployeeProvider>
+  }
+/>
+
+<Route
+  path="/search"
+  element={
+    <EmployeeProvider>
+      <TaskSearch />
+    </EmployeeProvider>
+  }
+/>
+
+<Route index element={<App />} />
+
+<Route
+  path="/dashboard"
+  element={
+    <TasksProvider>
+      <EmployeeProvider>
+        <Dashboard />
+      </EmployeeProvider>
+    </TasksProvider>
+  }
+/>
+
   </Routes>
 </SignedIn>
         </ThemeProviderWrapper>

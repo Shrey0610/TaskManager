@@ -1,29 +1,36 @@
 import PropTypes from 'prop-types';
 import {Button} from "@mui/material";
+
+import { useContext } from 'react';
+import { TasksContext } from './TasksContext';
+import { EmployeeContext } from './EmployeeContext';
+
+
+
 const DashboardCard = ({ title, count, icon }) => {
-  return (
-    <div style={{
-      backgroundColor: 'white',
-      borderRadius: '12px',
-      padding: '20px',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-      minWidth: '220px'
-    }}>
+    return (
+        <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+            minWidth: '220px'
+        }}>
       <div>
         <div style={{ color: '#6B7280', fontWeight: '600' }}>{title}</div>
-        <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{count}</div>
+        <div style={{ fontSize: '20px', fontWeight: 'bold', color: "black" }}>{count}</div>
       </div>
       <div style={{
-        backgroundColor: '#6366F1',
-        borderRadius: '9999px',
-        padding: '10px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
+          backgroundColor: '#6366F1',
+          borderRadius: '9999px',
+          padding: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
         {icon}
       </div>
     </div>
@@ -37,6 +44,10 @@ DashboardCard.propTypes = {
 };
 
 const Dashboard = () => {
+    const { tasks } = useContext(TasksContext);
+    const { assignees } = useContext(EmployeeContext);
+    const employeeCount = tasks?.length || 0;
+    const taskCount = assignees?.length || 0;
     const contentStyles = {
       marginLeft: "250px", // Adjust this to account for the sidebar width
       padding: "40px",
@@ -123,11 +134,12 @@ const sidebarStyles = {
         <div style={{
           display: 'flex',
           gap: '20px',
-          flexWrap: 'wrap'
+          flexWrap: 'wrap',color: "white"
         }}>
+            
           <DashboardCard
             title="Employees"
-            count={8}
+            count={taskCount}
             icon={
               <svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" style={{ width: '24px', height: '24px' }}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
@@ -136,11 +148,11 @@ const sidebarStyles = {
           />
           <DashboardCard
             title="Tasks"
-            count={24}
+            count={employeeCount}
             icon={
-              <svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" style={{ width: '24px', height: '24px' }}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12.75l3 3 7.5-7.5M4.5 4.5h15a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75h-15a.75.75 0 01-.75-.75V5.25a.75.75 0 01.75-.75z" />
-              </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" style={{ width: "20px", height: "20px" }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m0 0a2.246 2.246 0 0 0-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0 1 21 12v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6c0-.98.626-1.813 1.5-2.122" />
+            </svg>
             }
           />
         </div>

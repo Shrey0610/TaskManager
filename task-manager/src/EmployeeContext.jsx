@@ -1,6 +1,8 @@
 import { createContext, useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Button } from "@mui/material";
+import { useLocation } from "react-router-dom";
+
 
 export const EmployeeContext = createContext();
 
@@ -59,12 +61,14 @@ export const EmployeeProvider = ({ children }) => {
             .then(() => fetchAssignee())  // Re-fetch assignees after update
             .catch(error => console.error("Error updating employee:", error));
     };
-
+    const location = useLocation();
     return (
         <>
+        {location.pathname === "/employees" && (
         <Button variant="contained" color="secondary" onClick={handleSync} style={{marginTop: "125px", marginLeft: "270px"}}>
                 Sync Employees
             </Button>
+        )}
         <EmployeeContext.Provider value={{ assignees, addAssignee, deleteAssignee, editAssignee, fetchAssignee }}>
             {children}
         </EmployeeContext.Provider>
