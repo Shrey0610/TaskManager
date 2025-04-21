@@ -1,5 +1,4 @@
-import CssBaseline from '@mui/material/CssBaseline';
-import Stack from '@mui/material/Stack';
+import { CssBaseline, Stack } from "@mui/material";
 import Content from './assets/Content';
 import { useState } from "react";
 import { useSignIn, SignUp } from "@clerk/clerk-react";
@@ -11,7 +10,7 @@ export default function SignInPage() {
     const styles = {
         container: {
             width: "450px",
-            height: "500px",
+            minHeight: "500px", // changed from fixed height
             margin: "auto",
             padding: "20px",
             textAlign: "center",
@@ -20,6 +19,8 @@ export default function SignInPage() {
             boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)",
             backgroundColor: darkMode ? "#333" : "#fff",
             color: darkMode ? "#fff" : "#000",
+            overflow: "auto", // ensures content won't overflow
+            boxSizing: "border-box",
         },
         input: {
             width: "85%",
@@ -41,6 +42,14 @@ export default function SignInPage() {
         },
         error: {
             color: "red",
+            marginTop: "10px",
+            fontSize: "0.9em",
+            marginBottom: "10px",
+            textAlign: "center",
+            backgroundColor: darkMode ? "#444" : "#f8d7da",
+            padding: "10px",
+            borderRadius: "4px",
+            border: `1px solid ${darkMode ? "#f8d7da" : "#721c24"}`,
         },
         modalBox: {
             position: "absolute",
@@ -100,6 +109,21 @@ export default function SignInPage() {
         }
     };
 
+    const GoogleGIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="22" viewBox="0 0 533.5 520.5">
+          <path fill="#4285f4" d="M533.5 278.4c0-17.4-1.6-34.1-4.7-50.4H272v95.4h147.1c-6.4 34.1-25.7 63-54.8 82.2v68.3h88.4c51.7-47.6 80.8-117.8 80.8-195.5z"/>
+          <path fill="#34a853" d="M272 544.3c73.7 0 135.5-24.4 180.7-66.4l-88.4-68.3c-24.6 16.5-56.1 26.3-92.3 26.3-70.9 0-131-47.9-152.4-112.1h-90.2v70.4c45.3 89.7 138.4 150.1 242.6 150.1z"/>
+          <path fill="#fbbc04" d="M119.6 323.8c-10.5-31.1-10.5-64.9 0-96l-90.2-70.4C4.5 219.6-9.3 275.1 2.2 328.3l117.4-4.5z"/>
+          <path fill="#ea4335" d="M272 107.7c39.9 0 75.6 13.7 103.8 40.6l77.8-77.8C405.5 25.4 345.7 0 272 0 167.8 0 74.7 60.4 29.4 150.1l90.2 70.4C141 155.6 201.1 107.7 272 107.7z"/>
+        </svg>
+      );
+
+      const AppleIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="30" fill="black" viewBox="0 0 384 512">
+          <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
+        </svg>
+      );
+
     return (
         <>
             <CssBaseline enableColorScheme />
@@ -129,7 +153,29 @@ export default function SignInPage() {
                         <h2>Sign In to TaskManager</h2>
                         <p style={{ marginTop: '-20px', marginBottom: '30px', color: 'rgba(0, 0, 0, 0.6)' }}>Welcome back! Please sign in to continue</p>
 
-                        {error && <p style={styles.error}>{error}</p>}
+                        <div style={{ display: "flex", justifyContent: "center", gap: "16px", marginBottom: "20px" }}>
+              <button style={styles.iconBtn} aria-label="Sign in with Google">
+                <GoogleGIcon />
+              </button>
+              <button style={styles.iconBtn} aria-label="Sign in with GitHub">
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg"
+                  alt="GitHub"
+                  style={{ height: "24px", width: "24px" }}
+                />
+              </button>
+              <button style={styles.iconBtn} aria-label="Sign in with Apple">
+                <AppleIcon />
+              </button>
+            </div>
+
+
+            {error && (
+    <div style={styles.error}>
+        {error}
+    </div>
+)}
+
 
                         {pendingVerification ? (
                             <>
@@ -188,7 +234,7 @@ export default function SignInPage() {
                                 <div style={{ textAlign: "left", width: "50%", marginLeft: "8%" }}>
                                     <label>Password</label>
                                 </div>
-                                <div style={{ position: "relative" }}>
+                                <div style={{ position: "relative" , marginBottom: '10px'}}>
                                     <input
                                         type={showPassword ? "text" : "password"}
                                         placeholder="Password"

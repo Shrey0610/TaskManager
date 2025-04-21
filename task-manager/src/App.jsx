@@ -104,12 +104,12 @@ const AppWrapper = () => {
                   }}>
                 <h1 style={{ margin: 0, fontSize: "24px" }}>Sem 8 Project</h1>
 
-                <Button 
+                {/* <Button 
               variant="contained" 
               style={{ backgroundColor: "#465d66", color: "#fff" }} 
             >
               About Us
-            </Button>
+            </Button> */}
                 {/* Navigation buttons after signing in */}
       </header>
   <SignInPage path="/"  />
