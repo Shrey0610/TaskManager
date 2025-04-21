@@ -62,7 +62,7 @@ export const EmployeeProvider = ({ children }) => {
 
     return (
         <>
-        <Button variant="contained" color="secondary" onClick={handleSync} style={{marginTop: "100px", marginLeft: "270px"}}>
+        <Button variant="contained" color="secondary" onClick={handleSync} style={{marginTop: "125px", marginLeft: "270px"}}>
                 Sync Employees
             </Button>
         <EmployeeContext.Provider value={{ assignees, addAssignee, deleteAssignee, editAssignee, fetchAssignee }}>

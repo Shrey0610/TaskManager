@@ -10,6 +10,7 @@ export default function ColorModeSelect(props) {
       value={mode}
       onChange={toggleTheme}
       {...props}
+      style={{borderBlockColor: "white"}}
     >
       <MenuItem value="light">Light</MenuItem>
       <MenuItem value="dark">Dark</MenuItem>

@@ -9,8 +9,9 @@ import './App.css';
 import Modal from 'react-modal';
 import Employees from "./Employees";
 import TaskSearch from "./TaskSearch";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
-import { Button } from "@mui/material";
+import Dashboard from "./Dashboard";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+// import { Button } from "@mui/material";
 
 import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 import SignInPage from "./SignInPage.jsx";
@@ -57,7 +58,7 @@ function App() {
           <AddTaskForm className='adding' />
           <button id='cross' onClick={closeModal}>❌</button>
         </Modal>
-        <button onClick={openModal} style={{ borderColor: 'black', marginLeft: '18px' }}>Assign Task</button>
+        <button onClick={openModal} style={{ borderColor: 'black'}}>Assign Task</button>
       </div>
       </div>
       <br />
@@ -72,13 +73,13 @@ export default App;
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
 const AppWrapper = () => {
-  const [isEmployees, setIsEmployees] = useState(false);
-  const navigate = useNavigate();
+  // const [isEmployees, setIsEmployees] = useState(false);
+  // const navigate = useNavigate();
 
-  const toggleUrl = () => {
-    setIsEmployees(!isEmployees);
-    navigate(isEmployees ? '/' : '/employees');
-  };
+  // const toggleUrl = () => {
+  //   setIsEmployees(!isEmployees);
+  //   navigate(isEmployees ? '/' : '/employees');
+  // };
 
   // const toggleUrl2 = () => {
   //   setIsEmployees(!isEmployees);
@@ -89,7 +90,6 @@ const AppWrapper = () => {
     <StrictMode>
       <ThemeProviderWrapper>
 <SignedOut>
-        <ColorModeSelect sx={{ position: 'absolute', top: '6rem', right: '1rem' }} />
          <header style={{ 
                   padding: "25px", 
                   backgroundColor: "rgba(167, 173, 117, 0.81)", 
@@ -104,6 +104,10 @@ const AppWrapper = () => {
                   }}>
                 <h1 style={{ margin: 0, fontSize: "24px" }}>Sem 8 Project</h1>
 
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <ColorModeSelect sx={{ position: 'relative', marginRight: '10px' }} />
+                </div>
+
                 {/* <Button 
               variant="contained" 
               style={{ backgroundColor: "#465d66", color: "#fff" }} 
@@ -116,29 +120,29 @@ const AppWrapper = () => {
 </SignedOut>
 
               <SignedIn>
-              <ColorModeSelect sx={{ position: 'absolute', top: '6rem', right: '1rem' }} />
                   <header style={{ 
-                  padding: "25px", 
-                  backgroundColor: "#9990bf", 
-                  color: "#fff", 
-                  borderBottom: "2px solid rgba(85, 140, 198, 0.81)", 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  position: 'fixed',
-                  zIndex: 1000,
-                  width: '100%',
+                    padding: "25px", 
+                    backgroundColor: "#9990bf", 
+                    color: "#fff", 
+                    borderBottom: "2px solid rgba(85, 140, 198, 0.81)", 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    position: 'fixed',
+                    zIndex: 1000,
+                    width: '100%',
                   }}>
                 <h1 style={{ margin: 0, fontSize: "24px" }}>Task Manager</h1>
                 {/* Navigation buttons after signing in */}
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <Button 
+                    <ColorModeSelect sx={{ position: 'relative', marginRight: '10px' }} />
+            {/* <Button 
               variant="contained" 
               style={{ backgroundColor: "#8fa5a8", color: "#fff" }} 
               onClick={toggleUrl}
             >
               {isEmployees ? "Tasks" : "Employees"}
-            </Button>
+            </Button> */}
             {/* <Button 
               variant="contained" 
               style={{ backgroundColor: "#8fa5a8", color: "#fff" }} 
@@ -152,16 +156,28 @@ const AppWrapper = () => {
         </SignedIn>
 
         <SignedIn style={{ minHeight: "calc(100vh - 80px)" }}>
-
-          <EmployeeProvider>
-            <Routes>
-              <Route index element={<App />} />
-              <Route path="/employees" element={<Employees />} />
-              <Route path="/search" element={<TaskSearch />} />
-            </Routes>
-          </EmployeeProvider>
-
-        </SignedIn>
+  <Routes>
+    {/* Wrap EmployeeProvider only around routes that need it */}
+    <Route
+      path="/employees"
+      element={
+        <EmployeeProvider>
+          <Employees />
+        </EmployeeProvider>
+      }
+    />
+    <Route
+      path="/search"
+      element={
+        <EmployeeProvider>
+          <TaskSearch />
+        </EmployeeProvider>
+      }
+    />
+    <Route index element={<App />} />
+    <Route path="/dashboard" element={<Dashboard />} />
+  </Routes>
+</SignedIn>
         </ThemeProviderWrapper>
     </StrictMode>
   );
